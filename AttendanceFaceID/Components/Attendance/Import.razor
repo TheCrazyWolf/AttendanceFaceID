@@ -9,18 +9,19 @@
 
 <MudFileUpload T="IBrowserFile" FilesChanged="UploadFiles">
     <ActivatorContent>
-        <MudButton Variant="Variant.Filled"
+        <MudButton Variant="Variant.Outlined"
                    Color="Color.Primary"
+                   DropShadow="false"
                    StartIcon="@Icons.Material.Filled.CloudUpload">
-            Upload Files
+            Загрузить файл
         </MudButton>
     </ActivatorContent>
 </MudFileUpload>
 
-@foreach (var item in _actionResults)
+@foreach (var item in _actionResults.Reverse())
 {
     var type = item.IsSuccess ? Severity.Success : Severity.Warning;
-    <MudAlert Severity="type">@item.SystemMessage</MudAlert>
+    <MudAlert Class="mt-2" Variant="Variant.Outlined" Severity="type">@item.SystemMessage</MudAlert>
 }
 
 @code {
@@ -43,6 +44,7 @@
             // Now use the memory stream with XLWorkbook
             using var workbook = new XLWorkbook(memoryStream);
             var worksheet = workbook.Worksheet(1);
+            _actionResults.Add(new ActionResult(true, "Старт импорта"));
             foreach (var row in worksheet.RowsUsed().Skip(1))
             {
                 var cells = row.CellsUsed().ToList();
