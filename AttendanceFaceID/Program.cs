@@ -3,6 +3,7 @@ using AttendanceFaceID.Components;
 using AttendanceFaceID.Services.Services;
 using AttendanceFaceID.Storage;
 using AttendanceFaceID.Storage.Context;
+using Blazored.LocalStorage;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -14,6 +15,8 @@ builder.Services.AddScoped<AttendanceMainRepo>();
 builder.Services.AddScoped<StudentsService>();
 builder.Services.AddScoped<AttendanceService>();
 builder.Services.AddScoped<GroupService>();
+
+builder.Services.AddBlazoredLocalStorage();
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
