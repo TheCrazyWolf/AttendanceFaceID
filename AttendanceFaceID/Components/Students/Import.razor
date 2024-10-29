@@ -43,7 +43,7 @@
             using var memoryStream = new MemoryStream();
             
             // Copy the file content to memory stream asynchronously
-            await file.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024).CopyToAsync(memoryStream);
+            await file.OpenReadStream().CopyToAsync(memoryStream);
             
             // Reset position of the memory stream to the beginning
             memoryStream.Position = 0;
