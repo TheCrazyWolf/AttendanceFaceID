@@ -1,77 +1,83 @@
 ﻿@page "/attendance/view"
 
 
-@using AttendanceFaceID.Services.Models
+@using AttendanceFaceID.Models.DLA
 @using AttendanceFaceID.Services.Services
-@using ClosedXML.Excel
 
 @inject AttendanceService AttendanceService
+@inject GroupService GroupService
+@inject StudentsService StudentsService
 
-<MudFileUpload T="IBrowserFile" FilesChanged="UploadFiles">
-    <ActivatorContent>
-        <MudButton Variant="Variant.Outlined"
-                   Color="Color.Primary"
-                   DropShadow="false"
-                   StartIcon="@Icons.Material.Filled.CloudUpload">
-            Загрузить файл
-        </MudButton>
-    </ActivatorContent>
-</MudFileUpload>
+<MudStack Row="true">
+    <MudAutocomplete T="Group" Label="Группа" @bind-Value="_selectedGroup" SearchFunc="@SearchOnGroupTextBot"
+                     Variant="Variant.Outlined"
+                     ToStringFunc="@(e => e is null ? "Не выбрано" : $"{e.Name}")"
+                     ShowProgressIndicator="true"/>
 
-<MudProgressLinear Color="Color.Primary" Value="@_valueProgress" Class="my-7" />
+    <MudDateRangePicker
+        Variant="Variant.Outlined"
+        Label="Диапозон дат"
+        @bind-DateRange="@DateRange"
+        PlaceholderStart="С какого" PlaceholderEnd="По какое"/>
 
-@foreach (var item in _actionResults.Reverse())
+    <MudButton Variant="Variant.Outlined" OnClick="SearchAttendance" Color="Color.Primary">Поиск</MudButton>
+
+</MudStack>
+
+@if (_students.Count != 0)
 {
-    var type = item.IsSuccess ? Severity.Success : Severity.Warning;
-    <MudAlert Class="mt-2" Variant="Variant.Outlined" Severity="type">@item.SystemMessage</MudAlert>
+    <MudDataGrid Class="mt-4" Items="@_students" HorizontalScrollbar="true" Bordered="true" Dense="true">
+        <Columns>
+            <PropertyColumn Property="x => x.ShortName" StickyLeft="true" Title="Фамилия И.О." Sortable="false" Filterable="false"/>
+            @if (DateRange.Start is not null && DateRange.End is not null)
+            {
+                var currentDate = DateRange.Start;
+
+                while (currentDate <= DateRange.End)
+                {
+                    if (currentDate.Value.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday)
+                        currentDate = currentDate.Value.AddDays(1);
+
+                    var date = currentDate;
+                    <TemplateColumn T="Student" Title="@(currentDate.Value.ToString("dd.MM"))" Sortable="false" Filterable="false">
+                        <CellTemplate>
+                            @{
+                                var result = IsAttendancedFromDate(context.Item, date.Value);
+                                var color = result ? Color.Primary : Color.Error;
+                                var icon = result ? Icons.Material.Outlined.Done : Icons.Material.Outlined.Close;
+                                <MudIconButton Size="Size.Small" Icon="@icon" Color="@color" />
+                            }
+                        </CellTemplate>
+                    </TemplateColumn>
+                    currentDate = currentDate.Value.Date.AddDays(1);
+                }
+            }
+        </Columns>
+    </MudDataGrid>
 }
+
 
 @code {
 
-    private IList<ActionResult> _actionResults = new List<ActionResult>();
+    private Group? _selectedGroup;
+    private DateRange DateRange { get; set; } = new DateRange();
+    private IList<Student> _students = new List<Student>();
 
-    private double _valueProgress;
-
-    private async Task UploadFiles(IBrowserFile? file)
+    private async Task<IEnumerable<Group>> SearchOnGroupTextBot(string value, CancellationToken token)
     {
-        _valueProgress = 0;
-        if (file != null)
-        {
-            // Create a MemoryStream to hold the file data
-            using var memoryStream = new MemoryStream();
-
-            // Copy the file content to memory stream asynchronously
-            await file.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024).CopyToAsync(memoryStream);
-
-            // Reset position of the memory stream to the beginning
-            memoryStream.Position = 0;
-
-            // Now use the memory stream with XLWorkbook
-            using var workbook = new XLWorkbook(memoryStream);
-            var worksheet = workbook.Worksheet(1);
-            _actionResults.Add(new ActionResult(true, "Старт импорта"));
-
-            var fullCounts = worksheet.RowsUsed().Skip(1).Count();
-            double perByOneCount = fullCounts / 100.0;
-            
-            foreach (var row in worksheet.RowsUsed().Skip(1))
-            {
-                var cells = row.CellsUsed().ToList();
-
-                string dateTime = cells[7].Value.ToString();
-                string objectInit = cells[4].Value.ToString();
-                string shortName = cells[8].Value.ToString();
-                string groupName = cells[6].Value.ToString();
-                string faceMode = cells[9].Value.ToString();
-                var result = await AttendanceService.ImportAttendance(dateTime: dateTime, objectInit: objectInit, shortName: shortName, 
-                    groupName: groupName, faceMode: faceMode);
-                _actionResults.Add(result);
-                
-                await InvokeAsync(StateHasChanged);
-            }
-
-            _actionResults.Add(new ActionResult(true, "Импорт завершен"));
-        }
+        if (string.IsNullOrEmpty(value)) return await GroupService.GetGroups();
+        var groups = (await GroupService.GetGroups()).ToList();
+        return groups.Where(x => x.Name.Contains(value, StringComparison.InvariantCultureIgnoreCase));
     }
 
+    private async Task SearchAttendance()
+    {
+        if (_selectedGroup is null) return;
+        _students = await StudentsService.GetStudentByGroup(_selectedGroup.Id);
+    }
+
+    private bool IsAttendancedFromDate(Student student, DateTime dateTime)
+    {
+        return AttendanceService.ExistsAttendanceOfDate(student, dateTime).GetAwaiter().GetResult();
+    }
 }

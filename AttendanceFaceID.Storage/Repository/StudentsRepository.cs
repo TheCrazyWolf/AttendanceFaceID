@@ -23,7 +23,7 @@ public class StudentsRepository(AttendanceContext ef)
     
     public async Task<IList<Student>> GetStudentsFromGroup(long groupdId)
     {
-        return await ef.Students.Where(s => s.GroupId == groupdId).ToListAsync();
+        return await ef.Students.Where(s => s.GroupId == groupdId).OrderBy(x=> x.ShortName).ToListAsync();
     }
     
     public async Task AddStudent(Student student)

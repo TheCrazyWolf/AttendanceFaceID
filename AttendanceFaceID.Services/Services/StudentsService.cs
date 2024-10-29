@@ -28,4 +28,9 @@ public class StudentsService(AttendanceMainRepo repository)
         await repository.Students.AddStudent(student);
         return new ActionResult(true, $"Студент {student.ShortName} импортирован");
     }
+
+    public async Task<IList<Student>> GetStudentByGroup(long groupdId)
+    {
+        return await repository.Students.GetStudentsFromGroup(groupdId);
+    }
 }

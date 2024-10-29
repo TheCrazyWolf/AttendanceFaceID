@@ -60,4 +60,11 @@ public class AttendanceService(AttendanceMainRepo repository)
         await repository.AttendancesMain.AddAttendance(attendance);
         return new ActionResult(true, $"Событие импортировано: {attendance.DateTimeJoined}.{studentIdentity.ShortName} гр. {groupEntity.Name}");
     }
+
+    public async Task<bool> ExistsAttendanceOfDate(Student student, DateTime dateTime)
+    {
+        return await repository.AttendancesMain.ExistsAttendanceOfDate(student.Id, dateTime);
+    }
+    
+    
 }

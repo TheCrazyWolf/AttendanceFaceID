@@ -34,4 +34,9 @@ public class GroupsRepository(AttendanceContext ef)
         ef.Groups.Remove(group);
         await ef.SaveChangesAsync();
     }
+
+    public async Task<IList<Group>> GetGroup()
+    {
+        return await ef.Groups.ToListAsync();
+    }
 }

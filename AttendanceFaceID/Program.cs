@@ -13,16 +13,7 @@ builder.Services.AddScoped<AttendanceContext>();
 builder.Services.AddScoped<AttendanceMainRepo>();
 builder.Services.AddScoped<StudentsService>();
 builder.Services.AddScoped<AttendanceService>();
-/*builder.Services.Configure<KestrelServerOptions>(options =>
-{
-    options.AllowSynchronousIO = true;
-});
-
-// If using IIS:
-builder.Services.Configure<IISServerOptions>(options =>
-{
-    options.AllowSynchronousIO = true;
-});*/
+builder.Services.AddScoped<GroupService>();
 
 // Add services to the container.
 builder.Services.AddRazorComponents()

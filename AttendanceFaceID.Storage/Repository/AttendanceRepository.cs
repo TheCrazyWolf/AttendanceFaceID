@@ -34,4 +34,10 @@ public class AttendanceRepository(AttendanceContext ef)
     {
        return await ef.Attendances.AnyAsync(x=> x.StudentId == attendanceStudentId && x.DateTimeJoined == dateTime);
     }
+    
+    public async Task<bool> ExistsAttendanceOfDate(long attendanceStudentId, DateTime dateTime)
+    {
+        return await ef.Attendances.AnyAsync(x => x.StudentId == attendanceStudentId 
+                                                  && x.DateTimeJoined.Date == dateTime.Date);
+    }
 }
