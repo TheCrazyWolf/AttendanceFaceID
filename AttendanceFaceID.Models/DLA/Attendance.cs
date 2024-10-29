@@ -1,4 +1,5 @@
 ﻿using AttendanceFaceID.Models.Common;
+using AttendanceFaceID.Models.Enums;
 
 namespace AttendanceFaceID.Models.DLA;
 
@@ -9,4 +10,5 @@ public class Attendance : BaseEntity
     
     public DateTime DateTimeJoined { get; set; }
     public string ObjectInizialized { get; set; } = string.Empty;
+    public AttendanceEnum ModeType { get; set; }
 }

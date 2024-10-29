@@ -13,6 +13,6 @@ public class Student : BaseEntity
     
     public string GetShortName()
     {
-        return $"{LastName.ToUpper()} {FirstName.ToUpper().First()}. {MiddleName.ToUpper().First()}.";
+        return $"{LastName.ToUpper()} {FirstName.ToUpper().First()}.{MiddleName.ToUpper().First()}.";
     }
 }

@@ -3,5 +3,6 @@
 public enum AttendanceEnum
 {
     Card,
-    Face
+    Face,
+    Unknow
 }

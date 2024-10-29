@@ -29,4 +29,9 @@ public class AttendanceRepository(AttendanceContext ef)
         ef.Remove(attendance);
         await ef.SaveChangesAsync();
     }
+
+    public async Task<bool> ExistsAttendance(long attendanceStudentId, DateTime dateTime)
+    {
+       return await ef.Attendances.AnyAsync(x=> x.StudentId == attendanceStudentId && x.DateTimeJoined == dateTime);
+    }
 }

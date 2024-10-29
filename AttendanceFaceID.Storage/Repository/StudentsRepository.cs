@@ -11,6 +11,11 @@ public class StudentsRepository(AttendanceContext ef)
         return await ef.Students.FirstOrDefaultAsync(s => s.ShortName == shortName);
     }
     
+    public async Task<Student?> GetStudentByShortName(string shortName, long groupId)
+    {
+        return await ef.Students.FirstOrDefaultAsync(s => s.ShortName == shortName && s.GroupId == groupId);
+    }
+    
     public async Task<Student?> GetStudentByIdA(long id)
     {
         return await ef.Students.FirstOrDefaultAsync(x=> x.Id == id);
