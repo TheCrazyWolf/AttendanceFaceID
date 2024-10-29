@@ -10,6 +10,9 @@
 @inject StudentsService StudentsService
 @inject IDialogService DialogService
 
+<PageTitle>Просмотр логов</PageTitle>
+<MudText Class="mb-4"  Typo="Typo.h6">Просмотр логов</MudText>
+
 <MudStack Row="true">
     <MudAutocomplete T="Group" Label="Группа" @bind-Value="_selectedGroup" SearchFunc="@SearchOnGroupTextBot"
                      Variant="Variant.Outlined"
@@ -22,7 +25,7 @@
         @bind-DateRange="@DateRange"
         PlaceholderStart="С какого" PlaceholderEnd="По какое"/>
 
-    <MudButton Variant="Variant.Outlined" OnClick="SearchAttendance" Color="Color.Primary">Поиск</MudButton>
+    <MudIconButton OnClick="SearchAttendance" Size="Size.Medium" Icon="@Icons.Material.Outlined.Search" Color="Color.Primary"/>
 
 </MudStack>
 
