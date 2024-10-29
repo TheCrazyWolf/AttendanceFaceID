@@ -41,14 +41,16 @@
                         currentDate = currentDate.Value.AddDays(1);
 
                     var date = currentDate;
-                    <TemplateColumn T="Student" Title="@(currentDate.Value.ToString("dd.MM"))" Sortable="false" Filterable="false">
-                        <CellTemplate>
-                            @{
+                    <TemplateColumn  T="Student" Title="@(currentDate.Value.ToString("dd.MM"))" Sortable="false" Filterable="false">
+                        <CellTemplate >
+                            <div style="vertical-align: middle;text-align: center;">
+                                @{
                                 var result = IsAttendancedFromDate(context.Item, date.Value);
                                 var color = result ? Color.Primary : Color.Error;
                                 var icon = result ? Icons.Material.Outlined.Done : Icons.Material.Outlined.Close;
-                                <MudIconButton OnClick="() => OpenDetailsHistoryFromDate(context.Item, date.Value)" Size="Size.Small" Icon="@icon" Color="@color" />
-                            }
+                                <MudIconButton OnClick="() => OpenDetailsHistoryFromDate(context.Item, date.Value)" Size="Size.Small" Icon="@icon" Color="@color"/>
+                                }
+                            </div>
                         </CellTemplate>
                     </TemplateColumn>
                     currentDate = currentDate.Value.Date.AddDays(1);
