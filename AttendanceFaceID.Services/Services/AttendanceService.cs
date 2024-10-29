@@ -65,6 +65,10 @@ public class AttendanceService(AttendanceMainRepo repository)
     {
         return await repository.AttendancesMain.ExistsAttendanceOfDate(student.Id, dateTime);
     }
-    
-    
+
+
+    public async Task<IList<Attendance>> GetHistoryFromDateByStudentId(long studentId, DateTime dateTime)
+    {
+        return await repository.AttendancesMain.GetHistoryFromDateByStudentId(studentId, dateTime);
+    }
 }

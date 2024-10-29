@@ -40,4 +40,10 @@ public class AttendanceRepository(AttendanceContext ef)
         return await ef.Attendances.AnyAsync(x => x.StudentId == attendanceStudentId 
                                                   && x.DateTimeJoined.Date == dateTime.Date);
     }
+
+    public async Task<IList<Attendance>> GetHistoryFromDateByStudentId(long studentId, DateTime dateTime)
+    {
+        return await ef.Attendances.Where(x => x.StudentId == studentId 
+                                                  && x.DateTimeJoined.Date == dateTime.Date).ToListAsync();
+    }
 }

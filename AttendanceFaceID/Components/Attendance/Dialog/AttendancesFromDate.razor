@@ -1,0 +1,43 @@
+﻿@using AttendanceFaceID.Models.DLA
+@using AttendanceFaceID.Models.Extensions
+@using AttendanceFaceID.Services.Services
+
+@inject AttendanceService AttendanceService
+
+<MudDialog Style="min-width: 600px;">
+    <DialogContent >
+        <MudDataGrid Items="@_attendances" HorizontalScrollbar="true" Bordered="true" Dense="true">
+            <Columns>
+                <PropertyColumn Property="x => x.DateTimeJoined"  Title="Дата-время" Sortable="false" Filterable="false"/>
+                <PropertyColumn Property="x => x.ObjectInizialized"  Title="Считыватель" Sortable="false" Filterable="false"/>
+                <TemplateColumn T="Attendance" Title="Режим" Sortable="false" Filterable="false">
+                    <CellTemplate>
+                        @context.Item.ModeType.GetDisplayName()
+                    </CellTemplate>
+                </TemplateColumn>
+            </Columns>
+        </MudDataGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Color="Color.Primary" OnClick="Submit">Закрыть</MudButton>
+    </DialogActions>
+</MudDialog>
+
+
+@code {
+
+    [CascadingParameter] private MudDialogInstance MudDialog { get; set; } = default!;
+    
+    [Parameter] public long StudentId { get; set; }
+    [Parameter] public DateTime Date { get; set; }
+
+    private IList<Attendance> _attendances = new List<Attendance>();
+    
+    private void Submit() => MudDialog.Close(DialogResult.Ok(true));
+    
+    protected override async Task OnInitializedAsync()
+    {
+        _attendances = await AttendanceService.GetHistoryFromDateByStudentId(StudentId, Date);
+    }
+    
+}

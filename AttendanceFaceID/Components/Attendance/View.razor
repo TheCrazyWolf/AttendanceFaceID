@@ -1,12 +1,14 @@
 ﻿@page "/attendance/view"
 
 
+@using AttendanceFaceID.Components.Attendance.Dialog
 @using AttendanceFaceID.Models.DLA
 @using AttendanceFaceID.Services.Services
 
 @inject AttendanceService AttendanceService
 @inject GroupService GroupService
 @inject StudentsService StudentsService
+@inject IDialogService DialogService
 
 <MudStack Row="true">
     <MudAutocomplete T="Group" Label="Группа" @bind-Value="_selectedGroup" SearchFunc="@SearchOnGroupTextBot"
@@ -45,7 +47,7 @@
                                 var result = IsAttendancedFromDate(context.Item, date.Value);
                                 var color = result ? Color.Primary : Color.Error;
                                 var icon = result ? Icons.Material.Outlined.Done : Icons.Material.Outlined.Close;
-                                <MudIconButton Size="Size.Small" Icon="@icon" Color="@color" />
+                                <MudIconButton OnClick="() => OpenDetailsHistoryFromDate(context.Item, date.Value)" Size="Size.Small" Icon="@icon" Color="@color" />
                             }
                         </CellTemplate>
                     </TemplateColumn>
@@ -80,4 +82,15 @@
     {
         return AttendanceService.ExistsAttendanceOfDate(student, dateTime).GetAwaiter().GetResult();
     }
+
+    private async Task OpenDetailsHistoryFromDate(Student contextItem, DateTime date)
+    {
+        var options = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true};
+        var parameters = new DialogParameters<AttendancesFromDate>();
+        parameters.Add("StudentId", contextItem.Id);
+        parameters.Add("Date", date);
+        var dialog = await DialogService.ShowAsync<AttendancesFromDate>($"Просмотр {contextItem.ShortName} за {date.ToString("dd.MM.yyyy")}", parameters, options);
+        await dialog.Result;
+    }
+
 }

@@ -33,4 +33,9 @@ public class StudentsService(AttendanceMainRepo repository)
     {
         return await repository.Students.GetStudentsFromGroup(groupdId);
     }
+
+    public async Task<Student?> GetStudentById(long studentId)
+    {
+        return await repository.Students.GetStudentById(studentId);
+    }
 }
