@@ -1,10 +1,10 @@
+using System.Net;
 using MudBlazor.Services;
 using AttendanceFaceID.Components;
 using AttendanceFaceID.Services.Services;
 using AttendanceFaceID.Storage;
 using AttendanceFaceID.Storage.Context;
 using Blazored.LocalStorage;
-using Microsoft.AspNetCore.Server.Kestrel.Core;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,6 +17,11 @@ builder.Services.AddScoped<AttendanceService>();
 builder.Services.AddScoped<GroupService>();
 
 builder.Services.AddBlazoredLocalStorage();
+
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.Listen(IPAddress.Any, 5001);
+});
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
