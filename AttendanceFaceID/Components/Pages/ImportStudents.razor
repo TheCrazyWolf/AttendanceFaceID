@@ -1,0 +1,64 @@
+﻿@page "/students/import"
+
+@using AttendanceFaceID.Models.DLA
+@using AttendanceFaceID.Services.Models
+@using AttendanceFaceID.Services.Services
+@using ClosedXML.Excel
+
+@inject StudentsService StudentService
+
+<MudFileUpload T="IBrowserFile" FilesChanged="UploadFiles">
+    <ActivatorContent>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.CloudUpload">
+            Upload Files
+        </MudButton>
+    </ActivatorContent>
+</MudFileUpload>
+
+@foreach (var item in _actionResults)
+{
+    var type = item.IsSuccess ? Severity.Success : Severity.Warning;
+    <MudAlert Severity="type">@item.SystemMessage</MudAlert>
+}
+
+@code {
+    
+    private IList<ActionResult> _actionResults = new List<ActionResult>();
+    
+    private async Task UploadFiles(IBrowserFile? file)
+    {
+        if (file != null)
+        {
+            // Create a MemoryStream to hold the file data
+            using var memoryStream = new MemoryStream();
+            
+            // Copy the file content to memory stream asynchronously
+            await file.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024).CopyToAsync(memoryStream);
+            
+            // Reset position of the memory stream to the beginning
+            memoryStream.Position = 0;
+
+            // Now use the memory stream with XLWorkbook
+            using var workbook = new XLWorkbook(memoryStream);
+            var worksheet = workbook.Worksheet(1);
+            foreach (var row in worksheet.RowsUsed().Skip(1))
+            {
+                var cells = row.CellsUsed().ToList();
+
+                string lastName = cells[0].Value.ToString();
+                string firstName = cells[1].Value.ToString();
+                string middleName = cells[2].Value.ToString();
+                string groupName = cells[3].Value.ToString();
+                var studentEntity = new Student() { LastName = lastName, FirstName = firstName, MiddleName = middleName};
+                var result = await StudentService.ImportStudent(studentEntity, groupName);
+                _actionResults.Add(result);
+                await InvokeAsync(StateHasChanged);
+            }
+            
+            _actionResults.Add(new ActionResult(true, "Импорт завершен"));
+        }
+    }
+
+}

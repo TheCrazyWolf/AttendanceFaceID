@@ -1,10 +1,27 @@
 using MudBlazor.Services;
 using AttendanceFaceID.Components;
+using AttendanceFaceID.Services.Services;
+using AttendanceFaceID.Storage;
+using AttendanceFaceID.Storage.Context;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add MudBlazor services
 builder.Services.AddMudServices();
+builder.Services.AddScoped<AttendanceContext>();
+builder.Services.AddScoped<AttendanceMainRepo>();
+builder.Services.AddScoped<StudentsService>();
+builder.Services.Configure<KestrelServerOptions>(options =>
+{
+    options.AllowSynchronousIO = true;
+});
+
+// If using IIS:
+builder.Services.Configure<IISServerOptions>(options =>
+{
+    options.AllowSynchronousIO = true;
+});
 
 // Add services to the container.
 builder.Services.AddRazorComponents()

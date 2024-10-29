@@ -8,6 +8,12 @@
 
 
     <ItemGroup>
+        <PackageReference Include="ClosedXML" Version="0.104.1" />
         <PackageReference Include="MudBlazor" Version="7.*"/>
+    </ItemGroup>
+
+
+    <ItemGroup>
+      <ProjectReference Include="..\AttendanceFaceID.Services\AttendanceFaceID.Services.csproj" />
     </ItemGroup>
 </Project>

@@ -12,17 +12,19 @@ public class StudentsService(AttendanceMainRepo repository)
         student.FirstName = student.FirstName.ToUpper().Replace(" ", string.Empty);
         student.LastName = student.LastName.ToUpper().Replace(" ", string.Empty);
         student.MiddleName = student.MiddleName.ToUpper().Replace(" ", string.Empty);
+        student.ShortName = student.GetShortName();
         
         var groupEntity = await repository.Groups.GetGroupByNameAsync(groupName.ToUpper());
         
         if (groupEntity is null)
         {
-            await repository.Groups.CreateGroupAsync(new Group() { Name = groupName });
+            groupEntity = new Group() { Name = groupName };
+            await repository.Groups.CreateGroupAsync(groupEntity);
         }
         var studentIdentity = await repository.Students.GetStudentByShortName(student.ShortName);
 
         if (studentIdentity is not null) return new ActionResult(false, $"Студент {student.ShortName} уже существует");
-       
+        student.GroupId = groupEntity.Id;
         await repository.Students.AddStudent(student);
         return new ActionResult(true, $"Студент {student.ShortName} импортирован");
     }
