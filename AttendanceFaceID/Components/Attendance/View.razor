@@ -1,13 +1,13 @@
-﻿@page "/students/import"
+﻿@page "/attendance/view"
 
-@using AttendanceFaceID.Models.DLA
+
 @using AttendanceFaceID.Services.Models
 @using AttendanceFaceID.Services.Services
 @using ClosedXML.Excel
 
-@inject StudentsService StudentService
+@inject AttendanceService AttendanceService
 
-<MudFileUpload  T="IBrowserFile" FilesChanged="UploadFiles">
+<MudFileUpload T="IBrowserFile" FilesChanged="UploadFiles">
     <ActivatorContent>
         <MudButton Variant="Variant.Outlined"
                    Color="Color.Primary"
@@ -18,7 +18,7 @@
     </ActivatorContent>
 </MudFileUpload>
 
-<MudProgressLinear Striped="true" Color="Color.Primary" Value="@_valueProgress" Class="my-7" />
+<MudProgressLinear Color="Color.Primary" Value="@_valueProgress" Class="my-7" />
 
 @foreach (var item in _actionResults.Reverse())
 {
@@ -27,21 +27,22 @@
 }
 
 @code {
-    
+
     private IList<ActionResult> _actionResults = new List<ActionResult>();
-    
+
     private double _valueProgress;
-    
+
     private async Task UploadFiles(IBrowserFile? file)
     {
+        _valueProgress = 0;
         if (file != null)
         {
             // Create a MemoryStream to hold the file data
             using var memoryStream = new MemoryStream();
-            
+
             // Copy the file content to memory stream asynchronously
             await file.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024).CopyToAsync(memoryStream);
-            
+
             // Reset position of the memory stream to the beginning
             memoryStream.Position = 0;
 
@@ -49,25 +50,26 @@
             using var workbook = new XLWorkbook(memoryStream);
             var worksheet = workbook.Worksheet(1);
             _actionResults.Add(new ActionResult(true, "Старт импорта"));
-            
+
             var fullCounts = worksheet.RowsUsed().Skip(1).Count();
-            double perStep = 100.0 / fullCounts;
+            double perByOneCount = fullCounts / 100.0;
             
             foreach (var row in worksheet.RowsUsed().Skip(1))
             {
                 var cells = row.CellsUsed().ToList();
 
-                string lastName = cells[0].Value.ToString();
-                string firstName = cells[1].Value.ToString();
-                string middleName = cells[2].Value.ToString();
-                string groupName = cells[3].Value.ToString();
-                var studentEntity = new Student() { LastName = lastName, FirstName = firstName, MiddleName = middleName};
-                var result = await StudentService.ImportStudent(studentEntity, groupName);
+                string dateTime = cells[7].Value.ToString();
+                string objectInit = cells[4].Value.ToString();
+                string shortName = cells[8].Value.ToString();
+                string groupName = cells[6].Value.ToString();
+                string faceMode = cells[9].Value.ToString();
+                var result = await AttendanceService.ImportAttendance(dateTime: dateTime, objectInit: objectInit, shortName: shortName, 
+                    groupName: groupName, faceMode: faceMode);
                 _actionResults.Add(result);
-                _valueProgress += perStep;
-               await InvokeAsync(StateHasChanged);
+                
+                await InvokeAsync(StateHasChanged);
             }
-            
+
             _actionResults.Add(new ActionResult(true, "Импорт завершен"));
         }
     }

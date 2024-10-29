@@ -18,6 +18,8 @@
     </ActivatorContent>
 </MudFileUpload>
 
+<MudProgressLinear Striped="true" Color="Color.Primary" Value="@_valueProgress" Class="my-7" />
+
 @foreach (var item in _actionResults.Reverse())
 {
     var type = item.IsSuccess ? Severity.Success : Severity.Warning;
@@ -27,6 +29,8 @@
 @code {
 
     private IList<ActionResult> _actionResults = new List<ActionResult>();
+    
+    private double _valueProgress;
 
     private async Task UploadFiles(IBrowserFile? file)
     {
@@ -45,6 +49,10 @@
             using var workbook = new XLWorkbook(memoryStream);
             var worksheet = workbook.Worksheet(1);
             _actionResults.Add(new ActionResult(true, "Старт импорта"));
+            
+            var fullCounts = worksheet.RowsUsed().Skip(1).Count();
+            double perStep = 100.0 / fullCounts;
+            
             foreach (var row in worksheet.RowsUsed().Skip(1))
             {
                 var cells = row.CellsUsed().ToList();
@@ -57,6 +65,7 @@
                 var result = await AttendanceService.ImportAttendance(dateTime: dateTime, objectInit: objectInit, shortName: shortName, 
                     groupName: groupName, faceMode: faceMode);
                 _actionResults.Add(result);
+                _valueProgress += perStep;
                 await InvokeAsync(StateHasChanged);
             }
 
