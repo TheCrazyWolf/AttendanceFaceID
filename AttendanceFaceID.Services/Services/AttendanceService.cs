@@ -54,26 +54,26 @@ public class AttendanceService(AttendanceMainRepo repository)
         if(attendance.ObjectInizialized.Contains("Общежитие", StringComparison.InvariantCultureIgnoreCase))
             return new ActionResult(false, $"Событие произошло в общежитиет: {attendance.DateTimeJoined}.{studentIdentity.ShortName} гр. {groupEntity.Name}");
         
-        if(await repository.AttendancesMain.ExistsAttendance(attendance.StudentId ?? 0, attendance.DateTimeJoined))
+        if(await repository.Attendances.ExistsAttendance(attendance.StudentId ?? 0, attendance.DateTimeJoined))
             return new ActionResult(false, $"Событие уже существует: {attendance.DateTimeJoined}.{studentIdentity.ShortName} гр. {groupEntity.Name}");
         
-        await repository.AttendancesMain.AddAttendance(attendance);
+        await repository.Attendances.AddAttendance(attendance);
         return new ActionResult(true, $"Событие импортировано: {attendance.DateTimeJoined}.{studentIdentity.ShortName} гр. {groupEntity.Name}");
     }
 
     public async Task<bool> ExistsAttendanceOfDate(Student student, DateTime dateTime)
     {
-        return await repository.AttendancesMain.ExistsAttendanceOfDate(student.Id, dateTime);
+        return await repository.Attendances.ExistsAttendanceOfDate(student.Id, dateTime);
     }
 
 
     public async Task<IList<Attendance>> GetHistoryFromDateByStudentId(long studentId, DateTime dateTime)
     {
-        return await repository.AttendancesMain.GetHistoryFromDateByStudentId(studentId, dateTime);
+        return await repository.Attendances.GetHistoryFromDateByStudentId(studentId, dateTime);
     }
 
     public async Task<Attendance?> GetLastAttendanceFromStudent(long studentId)
     {
-        return await repository.AttendancesMain.GetLastAttendanceFromStudent(studentId);
+        return await repository.Attendances.GetLastAttendanceFromStudent(studentId);
     }
 }
