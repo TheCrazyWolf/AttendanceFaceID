@@ -1,0 +1,68 @@
+﻿@page "/groups/view"
+
+
+@using AttendanceFaceID.Components.Attendance.Dialog
+@using AttendanceFaceID.Models.DLA
+@using AttendanceFaceID.Services.Services
+
+@inject GroupService GroupService
+@inject StudentsService StudentsService
+@inject IDialogService DialogService
+
+<PageTitle>Просмотр группы</PageTitle>
+<MudText Class="mb-4"  Typo="Typo.h6">Просмотр группы</MudText>
+
+<MudStack Row="true">
+    <MudAutocomplete T="Group" Label="Группа" ValueChanged="@OnChangedGroup" SearchFunc="@SearchOnGroupTextBot"
+                     Variant="Variant.Outlined"
+                     ToStringFunc="@(e => e is null ? "Не выбрано" : $"{e.Name}")"
+                     ShowProgressIndicator="true"/>
+</MudStack>
+
+<MudText Typo="Typo.body2" HtmlTag="strong">Контингент: @(_students.Count)</MudText>
+
+<MudDataGrid Class="mt-4" Items="@_students" HorizontalScrollbar="true" Bordered="true" Dense="true">
+    <Columns>
+        <PropertyColumn Property="x => x.ShortName" StickyLeft="true" Title="Фамилия И.О." Sortable="false" Filterable="false"/>
+        <TemplateColumn StickyRight="true" Title="Дата-время последнего события">
+            <CellTemplate>
+                --
+            </CellTemplate>
+        </TemplateColumn>
+        <TemplateColumn Title="Действия" StickyRight="true">
+            <CellTemplate>
+                <MudIconButton Icon="@Icons.Material.Outlined.Delete" Size="@Size.Small" />
+                <MudIconButton Icon="@Icons.Material.Outlined.Search" Size="@Size.Small" />
+            </CellTemplate>
+        </TemplateColumn>
+    </Columns>
+</MudDataGrid>
+
+
+@code {
+    
+    private IList<Student> _students = new List<Student>();
+
+    private async Task<IEnumerable<Group>> SearchOnGroupTextBot(string value, CancellationToken token)
+    {
+        if (string.IsNullOrEmpty(value)) return await GroupService.GetGroups();
+        var groups = (await GroupService.GetGroups()).ToList();
+        return groups.Where(x => x.Name.Contains(value, StringComparison.InvariantCultureIgnoreCase));
+    }
+
+    private async Task OpenDetailsHistoryFromDate(Student contextItem, DateTime date)
+    {
+        var options = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true};
+        var parameters = new DialogParameters<AttendancesFromDate>();
+        parameters.Add("StudentId", contextItem.Id);
+        parameters.Add("Date", date);
+        var dialog = await DialogService.ShowAsync<AttendancesFromDate>($"Просмотр {contextItem.ShortName} за {date.ToString("dd.MM.yyyy")}", parameters, options);
+        await dialog.Result;
+    }
+
+    private async Task OnChangedGroup(Group arg)
+    {
+        _students = await StudentsService.GetStudentByGroup(arg.Id);
+    }
+
+}
