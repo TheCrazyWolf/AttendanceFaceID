@@ -8,7 +8,7 @@ public class StudentsService(AttendanceMainRepo repository)
 {
     public async Task<ActionResult> ImportStudent(Student student, string groupName)
     {
-        groupName = groupName.ToUpper().Replace(" ", string.Empty);
+        groupName = groupName.ToUpper().Trim();
         student.FirstName = student.FirstName.ToUpper().Replace(" ", string.Empty);
         student.LastName = student.LastName.ToUpper().Replace(" ", string.Empty);
         student.MiddleName = student.MiddleName.ToUpper().Replace(" ", string.Empty);
@@ -29,9 +29,9 @@ public class StudentsService(AttendanceMainRepo repository)
         return new ActionResult(true, $"Студент {student.ShortName} импортирован");
     }
 
-    public async Task<IList<Student>> GetStudentByGroup(long groupdId)
+    public async Task<IList<Student>> GetStudentByGroup(long groupId)
     {
-        return await repository.Students.GetStudentsFromGroup(groupdId);
+        return await repository.Students.GetStudentsFromGroup(groupId);
     }
 
     public async Task<Student?> GetStudentById(long studentId)
