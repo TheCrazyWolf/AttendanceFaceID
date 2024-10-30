@@ -41,7 +41,10 @@
                 while (currentDate <= DateRange.End)
                 {
                     if (currentDate.Value.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday)
+                    {
                         currentDate = currentDate.Value.AddDays(1);
+                        continue;
+                    }
 
                     var date = currentDate;
                     <TemplateColumn  T="Student" Title="@(currentDate.Value.ToString("dd.MM"))" Sortable="false" Filterable="false">
