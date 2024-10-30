@@ -10,16 +10,19 @@
 
 @if (!_isBusy)
 {
-    <MudFileUpload T="IBrowserFile" FilesChanged="UploadFiles">
-        <ActivatorContent>
-            <MudButton Variant="Variant.Outlined"
-                       Color="Color.Primary"
-                       DropShadow="false"
-                       StartIcon="@Icons.Material.Filled.CloudUpload">
-                Загрузить файл
-            </MudButton>
-        </ActivatorContent>
-    </MudFileUpload>
+    <MudStack Row="true">
+        <MudFileUpload T="IBrowserFile" FilesChanged="UploadFiles">
+            <ActivatorContent>
+                <MudButton Variant="Variant.Outlined"
+                           Color="Color.Primary"
+                           DropShadow="false"
+                           StartIcon="@Icons.Material.Filled.CloudUpload">
+                    Загрузить файл
+                </MudButton>
+            </ActivatorContent>
+        </MudFileUpload>
+        <MudCheckBox @bind-Value="_isDebug" Label="Дебаг" Color="Color.Primary"></MudCheckBox>
+    </MudStack>
 }
 
 @if (_isBusy)
@@ -40,6 +43,7 @@
     private double _valueProgress;
     private int _maxCounts;
     private bool _isBusy;
+    private bool _isDebug = false;
     
     private async Task UploadFiles(IBrowserFile? file)
     {
@@ -55,7 +59,7 @@
             var rowEventSkud = AttendanceService.TryGetRowEventSkud(row.CellsUsed().ToList());
             if (rowEventSkud is null) continue;
             var result = await AttendanceService.ImportAttendance(rowEventSkud);
-            //if (!result.IsSuccess) _actionResults.Add(result);
+            if(_isDebug && !result.IsSuccess) _actionResults.Add(result);
             StateHasChanged();
         }
         _actionResults.Add(new ActionResult(true, $"[{DateTime.Now}] Импорт завершен"));
