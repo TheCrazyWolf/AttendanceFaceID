@@ -51,7 +51,7 @@
             // Now use the memory stream with XLWorkbook
             using var workbook = new XLWorkbook(memoryStream);
             var worksheet = workbook.Worksheet(1);
-            _actionResults.Add(new ActionResult(true, "Старт импорта"));
+            _actionResults.Add(new ActionResult(true, $"[{DateTime.Now}] Старт импорта"));
             
             var fullCounts = worksheet.RowsUsed().Skip(1).Count();
             double perStep = 100.0 / fullCounts;
@@ -72,7 +72,7 @@
                 await InvokeAsync(StateHasChanged);
             }
 
-            _actionResults.Add(new ActionResult(true, "Импорт завершен"));
+            _actionResults.Add(new ActionResult(true, $"[{DateTime.Now}] Импорт завершен"));
         }
     }
 

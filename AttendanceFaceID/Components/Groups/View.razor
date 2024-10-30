@@ -27,7 +27,7 @@
         <PropertyColumn Property="x => x.ShortName" StickyLeft="true" Title="Фамилия И.О." Sortable="false" Filterable="false"/>
         <TemplateColumn Title="Дата-время последнего события">
             <CellTemplate>
-                @(GetLastAttandance(context.Item))
+                @(GetLastAttendance(context.Item))
             </CellTemplate>
         </TemplateColumn>
         <TemplateColumn T="Student" Title="Действия" StickyRight="true">
@@ -43,7 +43,7 @@
 @code {
     
     private IList<Student> _students = new List<Student>();
-
+    private Group? _selectedGroup;
     private async Task<IEnumerable<Group>> SearchOnGroupTextBot(string value, CancellationToken token)
     {
         if (string.IsNullOrEmpty(value)) return await GroupService.GetGroups();
@@ -51,21 +51,23 @@
         return groups.Where(x => x.Name.Contains(value, StringComparison.InvariantCultureIgnoreCase));
     }
 
-    private async Task OpenModalToRemoveStudent(Student contextItem)
+    private async Task OpenModalToRemoveStudent(Student student)
     {
         var options = new DialogOptions {};
         var parameters = new DialogParameters<RemoveStudentFromGroup>();
-        parameters.Add("Student", contextItem);
-        var dialog = await DialogService.ShowAsync<RemoveStudentFromGroup>($"Исключить {contextItem.ShortName} из группы", parameters, options);
+        parameters.Add("Student", student);
+        var dialog = await DialogService.ShowAsync<RemoveStudentFromGroup>($"Исключить {student.ShortName} из группы", parameters, options);
         await dialog.Result;
+        await OnChangedGroup(_selectedGroup ?? new Group());
     }
 
     private async Task OnChangedGroup(Group arg)
     {
+        _selectedGroup = arg;
         _students = await StudentsService.GetStudentByGroup(arg.Id);
     }
 
-    private string GetLastAttandance(Student student)
+    private string GetLastAttendance(Student student)
     {
         var lastAttendance = AttendanceService.GetLastAttendanceFromStudent(student.Id).GetAwaiter().GetResult();
         return lastAttendance is null ? "Нет данных" : lastAttendance.DateTimeJoined.ToString(CultureInfo.CurrentCulture);
