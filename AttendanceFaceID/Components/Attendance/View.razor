@@ -16,10 +16,25 @@
 <MudText Class="mb-4" Typo="Typo.h6">Просмотр логов</MudText>
 
 <MudStack Row="true">
-    <MudAutocomplete T="Group" Label="Группа" @bind-Value="_selectedGroup" SearchFunc="@SearchOnGroupTextBot"
+    <MudAutocomplete T="Group" Label="Группа" ValueChanged="OnValueChangedGroup" SearchFunc="@SearchOnGroupTextBot"
                      Variant="Variant.Outlined"
                      ToStringFunc="@(e => e is null ? "Не выбрано" : $"{e.Name}")"
                      ShowProgressIndicator="true"/>
+
+    <MudSelect T="Student" Label="Студенты"
+               Variant="Variant.Outlined"
+               ToStringFunc="@(e => e is null ? "Не выбрано" : $"{e.ShortName}")"
+               MultiSelection="true" @bind-SelectedValues="SelectedStudents">
+        <MudStack Row="true">
+            <MudButton OnClick="SelectAllStudent" Variant="Variant.Text" Size="Size.Small">Все</MudButton>
+            <MudButton OnClick="UncheckAllStudent" Variant="Variant.Text" Size="Size.Small">Снять</MudButton>
+        </MudStack>
+        @foreach (var student in _students)
+        {
+            <MudSelectItem T="Student" Value="@student">@student.ShortName</MudSelectItem>
+        }
+    </MudSelect>
+    
     <MudDateRangePicker
         Variant="Variant.Outlined"
         Label="Диапозон дат"
@@ -38,9 +53,9 @@
     <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="my-7" />
 }
 
-@if (_students.Count != 0)
+@if (SelectedStudents.Count() != 0)
 {
-    <MudDataGrid Class="mt-4" Items="@_students" HorizontalScrollbar="true" Bordered="true" Dense="true">
+    <MudDataGrid Class="mt-4" Items="@SelectedStudents" HorizontalScrollbar="true" Bordered="true" Dense="true">
         <Columns>
             <PropertyColumn Property="x => x.ShortName" StickyLeft="true" Title="Фамилия И.О." Sortable="false" Filterable="false"/>
             @foreach (var column in _dateColumns)
@@ -80,6 +95,8 @@
     private Group? _selectedGroup;
     private DateRange DateRange { get; set; } = new ();
     private IList<Student> _students = new List<Student>();
+    private IEnumerable<Student> SelectedStudents { get; set; } = new HashSet<Student>();
+    
     private List<DateColumn> _dateColumns = new();
     
     private bool _showProgressBar = false;
@@ -98,8 +115,6 @@
         if (_showProgressBar) return;
         if (_selectedGroup is null) return;
         _showProgressBar = true;
-        ClearList();
-        _students = await StudentsService.GetStudentByGroup(_selectedGroup.Id);
         await GenerateDateColumnsAsync();
         _showProgressBar = false;
     }
@@ -161,6 +176,26 @@
 
             currentDate = currentDate.Value.Date.AddDays(1);
         }
+    }
+
+    private async Task OnValueChangedGroup(Group arg)
+    {
+        _selectedGroup = arg;
+        ClearList();
+        _students = await StudentsService.GetStudentByGroup(arg.Id);
+        SelectedStudents = _students;
+    }
+
+    private Task SelectAllStudent()
+    {
+        SelectedStudents = _students;
+        return Task.CompletedTask;
+    }
+
+    private Task UncheckAllStudent()
+    {
+        SelectedStudents = new HashSet<Student>();
+        return Task.CompletedTask;
     }
 
 }
