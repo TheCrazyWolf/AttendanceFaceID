@@ -2,7 +2,7 @@
 
 namespace AttendanceFaceID.Services.Enums;
 
-public enum AttendanceEnum
+public enum AttendanceEnumType
 {
     // дист
     [Display(Name = "д/о")]

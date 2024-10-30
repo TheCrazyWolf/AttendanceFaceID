@@ -3,6 +3,10 @@
 
 @using AttendanceFaceID.Components.Attendance.Dialog
 @using AttendanceFaceID.Models.DLA
+@using AttendanceFaceID.Models.Enums
+@using AttendanceFaceID.Models.Extensions
+@using AttendanceFaceID.Services.Enums
+@using AttendanceFaceID.Services.Models.Attendances
 @using AttendanceFaceID.Services.Services
 @using ClientSamgk
 
@@ -10,7 +14,6 @@
 @inject GroupService GroupService
 @inject StudentsService StudentsService
 @inject IDialogService DialogService
-@inject ClientSamgkApi ClientSamgkApi
 
 <PageTitle>Просмотр логов</PageTitle>
 <MudText Class="mb-4" Typo="Typo.h6">Просмотр логов</MudText>
@@ -32,7 +35,7 @@
             <MudSelectItem T="Student" Value="@student">@student.ShortName</MudSelectItem>
         }
     </MudSelect>
-    
+
     <MudDateRangePicker
         Variant="Variant.Outlined"
         Label="Диапозон дат"
@@ -48,59 +51,46 @@
 
 @if (_isBusy)
 {
-    <MudProgressLinear Striped="true" Color="Color.Primary" Indeterminate="true" Class="my-7" />
+    <MudProgressLinear Striped="true" Color="Color.Primary" Indeterminate="true" Class="my-7"/>
 }
 
-@if (SelectedStudents.Count() != 0)
+@if (_dateColumns.Count != 0)
 {
-    <MudDataGrid Class="mt-4" Items="@SelectedStudents" HorizontalScrollbar="true" Bordered="true" Dense="true">
-        <Columns>
-            <PropertyColumn Property="x => x.ShortName" StickyLeft="true" Title="Фамилия И.О." Sortable="false" Filterable="false"/>
-            @foreach (var column in _dateColumns)
+    <MudTable Class="mt-4" Items="_dateColumns" HorizontalScrollbar="true" Bordered="true" Dense="true">
+        <HeaderContent>
+            <MudTd Class="sticky" Style="min-width: 200px; max-width: 200px;">Фамилия И.О.</MudTd>
+            @foreach (var resultOfDay in _dateColumns[0].Attendances)
             {
-                <TemplateColumn T="Student" Title="@(column.Date.ToString("dd.MM"))" Sortable="false" Filterable="false">
-                    <CellTemplate>
-                        <div style="vertical-align: middle;text-align: center;">
-                            @{
-                                if (column.IsDistance)
-                                {
-                                    <MudButton OnClick="() => OpenDetailsHistoryFromDate(context.Item, column.Date)" Variant="Variant.Text" Size="Size.Small">д/о</MudButton>
-                                }
-                                else
-                                {
-                                    var result = IsAttendancedFromDate(context.Item, column.Date);
-                                    var color = result ? Color.Primary : Color.Error;
-                                    var icon = result ? Icons.Material.Outlined.Done : Icons.Material.Outlined.Close;
-                                    <MudIconButton OnClick="() => OpenDetailsHistoryFromDate(context.Item, column.Date)" Size="Size.Small" Icon="@icon" Color="@color"/>
-                                }
-                            }
-                        </div>
-                    </CellTemplate>
-                </TemplateColumn>
+                <MudTd Class="text-center" Style="max-width: 60px;" >@resultOfDay.Date.ToString("dd.MM")</MudTd>
             }
-        </Columns>
-    </MudDataGrid>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd Class="sticky no-wrap" Style="min-width: 200px; max-width: 200px;">@context.ShortName</MudTd>
+            @foreach (var resultOfDay in @context.Attendances)
+            {
+                <MudTd Class="text-center" Style="max-width: 60px;" @onclick="() => OpenDetailsHistoryFromDate(context, resultOfDay.Date.ToDateTime(new TimeOnly()))">
+                    
+                        @(resultOfDay.AttendanceType is AttendanceEnumType.Came ? string.Empty : resultOfDay.AttendanceType.GetDisplayName())
+                   
+                </MudTd>
+            }
+        </RowTemplate>
+    </MudTable>
 }
 
 @code {
 
-    private class DateColumn
-    {
-        public DateTime Date { get; set; }
-        public bool IsDistance { get; set; }
-    }
-
     private Group? _selectedGroup;
-    private DateRange DateRange { get; set; } = new ();
+    private DateRange DateRange { get; set; } = new();
     private IList<Student> _students = new List<Student>();
     private IEnumerable<Student> SelectedStudents { get; set; } = new HashSet<Student>();
-    
-    private List<DateColumn> _dateColumns = new();
-    
+
+    private IList<AttendanceStudentDetails> _dateColumns = new List<AttendanceStudentDetails>();
+
     private bool _isBusy = false;
     private bool _skipWeekend = true;
     private bool _userScheduleForCheckDistance = false;
-    
+
     private async Task<IEnumerable<Group>> SearchOnGroupTextBot(string value, CancellationToken token)
     {
         if (string.IsNullOrEmpty(value)) return await GroupService.GetGroups();
@@ -113,6 +103,7 @@
         if (_isBusy) return;
         if (_selectedGroup is null) return;
         _isBusy = true;
+        ClearList();
         await GenerateDateColumnsAsync();
         _isBusy = false;
     }
@@ -120,60 +111,22 @@
     private void ClearList()
     {
         _students = new List<Student>();
-        _dateColumns = new List<DateColumn>();
+        _dateColumns = new List<AttendanceStudentDetails>();
     }
 
-    private bool IsAttendancedFromDate(Student student, DateTime dateTime)
-    {
-        return AttendanceService.ExistsAttendanceOfDate(student, dateTime).GetAwaiter().GetResult();
-    }
-
-    private async Task OpenDetailsHistoryFromDate(Student contextItem, DateTime date)
+    private async Task OpenDetailsHistoryFromDate(AttendanceStudentDetails studentId, DateTime date)
     {
         var options = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
         var parameters = new DialogParameters<AttendancesFromDate>();
-        parameters.Add("StudentId", contextItem.Id);
+        parameters.Add("StudentId", studentId.StudentId);
         parameters.Add("Date", date);
-        var dialog = await DialogService.ShowAsync<AttendancesFromDate>($"Просмотр {contextItem.ShortName} за {date.ToString("dd.MM.yyyy")}", parameters, options);
+        var dialog = await DialogService.ShowAsync<AttendancesFromDate>($"Просмотр {studentId.ShortName} за {date.ToString("dd.MM.yyyy")}", parameters, options);
         await dialog.Result;
-    }
-
-    private async Task<bool> IsDistanceFromGroup(DateTime date, Group? selectedGroup)
-    {
-        if (selectedGroup is null) return false;
-        var entityGroup = await ClientSamgkApi.Groups.GetGroupAsync(selectedGroup.Name);
-        if (entityGroup is null) return false;
-        var schedule = await ClientSamgkApi.Schedule.GetScheduleAsync(DateOnly.FromDateTime(date), entityGroup);
-        if (!schedule.Lessons.Any()) return false;
-        if (!schedule.Lessons.First().Cabs.Any()) return false;
-        return schedule.Lessons.First().Cabs.First().Auditory is "дист";
     }
 
     private async Task GenerateDateColumnsAsync()
     {
-        var currentDate = DateRange.Start;
-
-        while (currentDate <= DateRange.End)
-        {
-            if (currentDate.Value.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday)
-            {
-                if (_skipWeekend)
-                {
-                    currentDate = currentDate.Value.AddDays(1);
-                    continue;
-                }
-            }
-            
-            var isDistanceToday = _userScheduleForCheckDistance && await IsDistanceFromGroup(currentDate.Value, _selectedGroup);
-
-            _dateColumns.Add(new DateColumn
-            {
-                Date = currentDate.Value,
-                IsDistance = isDistanceToday
-            });
-
-            currentDate = currentDate.Value.Date.AddDays(1);
-        }
+        _dateColumns = await AttendanceService.GetAttendanceResultFromDate(SelectedStudents.ToList(), _selectedGroup ?? new(), DateRange.Start ?? DateTime.Now, DateRange.End ?? DateTime.Now, _skipWeekend, _userScheduleForCheckDistance);
     }
 
     private async Task OnValueChangedGroup(Group arg)
