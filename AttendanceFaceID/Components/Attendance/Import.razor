@@ -67,7 +67,7 @@
                 string faceMode = cells[9].Value.ToString();
                 var result = await AttendanceService.ImportAttendance(dateTime: dateTime, objectInit: objectInit, shortName: shortName, 
                     groupName: groupName, faceMode: faceMode);
-                _actionResults.Add(result);
+                if(!result.IsSuccess) _actionResults.Add(result);
                 _valueProgress += perStep;
                 await InvokeAsync(StateHasChanged);
             }
