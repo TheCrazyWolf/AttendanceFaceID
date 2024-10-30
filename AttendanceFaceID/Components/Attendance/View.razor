@@ -4,75 +4,88 @@
 @using AttendanceFaceID.Components.Attendance.Dialog
 @using AttendanceFaceID.Models.DLA
 @using AttendanceFaceID.Services.Services
+@using ClientSamgk
 
 @inject AttendanceService AttendanceService
 @inject GroupService GroupService
 @inject StudentsService StudentsService
 @inject IDialogService DialogService
+@inject ClientSamgkApi ClientSamgkApi
 
 <PageTitle>Просмотр логов</PageTitle>
-<MudText Class="mb-4"  Typo="Typo.h6">Просмотр логов</MudText>
+<MudText Class="mb-4" Typo="Typo.h6">Просмотр логов</MudText>
 
 <MudStack Row="true">
     <MudAutocomplete T="Group" Label="Группа" @bind-Value="_selectedGroup" SearchFunc="@SearchOnGroupTextBot"
                      Variant="Variant.Outlined"
                      ToStringFunc="@(e => e is null ? "Не выбрано" : $"{e.Name}")"
                      ShowProgressIndicator="true"/>
-
     <MudDateRangePicker
         Variant="Variant.Outlined"
         Label="Диапозон дат"
         @bind-DateRange="@DateRange"
         PlaceholderStart="С какого" PlaceholderEnd="По какое"/>
-
     <MudIconButton OnClick="SearchAttendance" Size="Size.Medium" Icon="@Icons.Material.Outlined.Search" Color="Color.Primary"/>
-
 </MudStack>
+
+<MudStack Row="true">
+    <MudCheckBox @bind-Value="_skipWeekend" Label="Скип выходные (Cб,Вс)" Color="Color.Primary"></MudCheckBox>
+    <MudCheckBox @bind-Value="_userScheduleForCheckDistance" Label="Интеграция Д/О с расписанием" Color="Color.Primary"></MudCheckBox>
+</MudStack>
+
+@if (_showProgressBar)
+{
+    <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="my-7" />
+}
 
 @if (_students.Count != 0)
 {
     <MudDataGrid Class="mt-4" Items="@_students" HorizontalScrollbar="true" Bordered="true" Dense="true">
         <Columns>
             <PropertyColumn Property="x => x.ShortName" StickyLeft="true" Title="Фамилия И.О." Sortable="false" Filterable="false"/>
-            @if (DateRange.Start is not null && DateRange.End is not null)
+            @foreach (var column in _dateColumns)
             {
-                var currentDate = DateRange.Start;
-
-                while (currentDate <= DateRange.End)
-                {
-                    if (currentDate.Value.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday)
-                    {
-                        currentDate = currentDate.Value.AddDays(1);
-                        continue;
-                    }
-
-                    var date = currentDate;
-                    <TemplateColumn  T="Student" Title="@(currentDate.Value.ToString("dd.MM"))" Sortable="false" Filterable="false">
-                        <CellTemplate >
-                            <div style="vertical-align: middle;text-align: center;">
-                                @{
-                                var result = IsAttendancedFromDate(context.Item, date.Value);
-                                var color = result ? Color.Primary : Color.Error;
-                                var icon = result ? Icons.Material.Outlined.Done : Icons.Material.Outlined.Close;
-                                <MudIconButton OnClick="() => OpenDetailsHistoryFromDate(context.Item, date.Value)" Size="Size.Small" Icon="@icon" Color="@color"/>
+                <TemplateColumn T="Student" Title="@(column.Date.ToString("dd.MM"))" Sortable="false" Filterable="false">
+                    <CellTemplate>
+                        <div style="vertical-align: middle;text-align: center;">
+                            @{
+                                if (column.IsDistance)
+                                {
+                                    <MudButton OnClick="() => OpenDetailsHistoryFromDate(context.Item, column.Date)" Variant="Variant.Text" Size="Size.Small">д/о</MudButton>
                                 }
-                            </div>
-                        </CellTemplate>
-                    </TemplateColumn>
-                    currentDate = currentDate.Value.Date.AddDays(1);
-                }
+                                else
+                                {
+                                    var result = IsAttendancedFromDate(context.Item, column.Date);
+                                    var color = result ? Color.Primary : Color.Error;
+                                    var icon = result ? Icons.Material.Outlined.Done : Icons.Material.Outlined.Close;
+                                    <MudIconButton OnClick="() => OpenDetailsHistoryFromDate(context.Item, column.Date)" Size="Size.Small" Icon="@icon" Color="@color"/>
+                                }
+                            }
+                        </div>
+                    </CellTemplate>
+                </TemplateColumn>
             }
         </Columns>
     </MudDataGrid>
 }
 
-
 @code {
 
-    private Group? _selectedGroup;
-    private DateRange DateRange { get; set; } = new DateRange();
-    private IList<Student> _students = new List<Student>();
+    private class DateColumn
+    {
+        public DateTime Date { get; set; }
+        public bool IsDistance { get; set; }
+    }
 
+    private Group? _selectedGroup;
+    private DateRange DateRange { get; set; } = new ();
+    private IList<Student> _students = new List<Student>();
+    private List<DateColumn> _dateColumns = new();
+    
+    private bool _showProgressBar = false;
+    private bool _skipWeekend = true;
+    private bool _userScheduleForCheckDistance = false;
+    
     private async Task<IEnumerable<Group>> SearchOnGroupTextBot(string value, CancellationToken token)
     {
         if (string.IsNullOrEmpty(value)) return await GroupService.GetGroups();
@@ -82,8 +95,19 @@
 
     private async Task SearchAttendance()
     {
+        if (_showProgressBar) return;
         if (_selectedGroup is null) return;
+        _showProgressBar = true;
+        ClearList();
         _students = await StudentsService.GetStudentByGroup(_selectedGroup.Id);
+        await GenerateDateColumnsAsync();
+        _showProgressBar = false;
+    }
+
+    private void ClearList()
+    {
+        _students = new List<Student>();
+        _dateColumns = new List<DateColumn>();
     }
 
     private bool IsAttendancedFromDate(Student student, DateTime dateTime)
@@ -93,12 +117,50 @@
 
     private async Task OpenDetailsHistoryFromDate(Student contextItem, DateTime date)
     {
-        var options = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true};
+        var options = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
         var parameters = new DialogParameters<AttendancesFromDate>();
         parameters.Add("StudentId", contextItem.Id);
         parameters.Add("Date", date);
         var dialog = await DialogService.ShowAsync<AttendancesFromDate>($"Просмотр {contextItem.ShortName} за {date.ToString("dd.MM.yyyy")}", parameters, options);
         await dialog.Result;
+    }
+
+    private async Task<bool> IsDistanceFromGroup(DateTime date, Group? selectedGroup)
+    {
+        if (selectedGroup is null) return false;
+        var entityGroup = await ClientSamgkApi.Groups.GetGroupAsync(selectedGroup.Name);
+        if (entityGroup is null) return false;
+        var schedule = await ClientSamgkApi.Schedule.GetScheduleAsync(DateOnly.FromDateTime(date), entityGroup);
+        if (!schedule.Lessons.Any()) return false;
+        if (!schedule.Lessons.First().Cabs.Any()) return false;
+        return schedule.Lessons.First().Cabs.First().Auditory is "дист";
+    }
+
+    private async Task GenerateDateColumnsAsync()
+    {
+        var currentDate = DateRange.Start;
+
+        while (currentDate <= DateRange.End)
+        {
+            if (currentDate.Value.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday)
+            {
+                if (_skipWeekend)
+                {
+                    currentDate = currentDate.Value.AddDays(1);
+                    continue;
+                }
+            }
+            
+            var isDistanceToday = _userScheduleForCheckDistance && await IsDistanceFromGroup(currentDate.Value, _selectedGroup);
+
+            _dateColumns.Add(new DateColumn
+            {
+                Date = currentDate.Value,
+                IsDistance = isDistanceToday
+            });
+
+            currentDate = currentDate.Value.Date.AddDays(1);
+        }
     }
 
 }

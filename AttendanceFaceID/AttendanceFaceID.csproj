@@ -9,6 +9,7 @@
 
     <ItemGroup>
         <PackageReference Include="Blazored.LocalStorage" Version="4.5.0" />
+        <PackageReference Include="ClientSamgk" Version="2.6.2" />
         <PackageReference Include="ClosedXML" Version="0.104.1" />
         <PackageReference Include="MudBlazor" Version="7.*"/>
     </ItemGroup>

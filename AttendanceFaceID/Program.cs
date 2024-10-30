@@ -5,6 +5,7 @@ using AttendanceFaceID.Services.Services;
 using AttendanceFaceID.Storage;
 using AttendanceFaceID.Storage.Context;
 using Blazored.LocalStorage;
+using ClientSamgk;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,6 +16,7 @@ builder.Services.AddScoped<AttendanceMainRepo>();
 builder.Services.AddScoped<StudentsService>();
 builder.Services.AddScoped<AttendanceService>();
 builder.Services.AddScoped<GroupService>();
+builder.Services.AddSingleton<ClientSamgkApi>();
 
 builder.Services.AddBlazoredLocalStorage();
 
