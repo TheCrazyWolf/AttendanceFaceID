@@ -1,7 +1,10 @@
 ﻿using AttendanceFaceID.Models.DLA;
 using AttendanceFaceID.Models.Enums;
 using AttendanceFaceID.Services.Models;
+using AttendanceFaceID.Services.Models.xlsx;
 using AttendanceFaceID.Storage;
+using ClosedXML.Excel;
+using Microsoft.AspNetCore.Components.Forms;
 
 namespace AttendanceFaceID.Services.Services;
 
@@ -75,5 +78,43 @@ public class AttendanceService(AttendanceMainRepo repository)
     public async Task<Attendance?> GetLastAttendanceFromStudent(long studentId)
     {
         return await repository.Attendances.GetLastAttendanceFromStudent(studentId);
+    }
+
+    public async Task<IList<IXLRow>> ReadXlsxFileAndGetRows(IBrowserFile file)
+    {
+        using var memoryStream = new MemoryStream();
+        await file.OpenReadStream().CopyToAsync(memoryStream);
+        memoryStream.Position = 0;
+        
+        var workbook = new XLWorkbook(memoryStream);
+        var worksheet = workbook.Worksheet(1);
+
+        return worksheet.RowsUsed().Skip(1).ToList();
+    }
+
+    public RowEventSkud? TryGetRowEventSkud(List<IXLCell>? cells)
+    {
+        if(cells is null) return null;
+
+        try
+        {
+            string dateTime = cells[7].Value.ToString();
+            string objectInit = cells[4].Value.ToString();
+            string shortName = cells[8].Value.ToString();
+            string groupName = cells[6].Value.ToString();
+            string faceMode = cells[9].Value.ToString();
+            return new RowEventSkud(dateTime, objectInit, shortName, groupName, faceMode);
+        }
+        catch 
+        {
+            return null;
+        }
+    }
+
+    public async Task<ActionResult> ImportAttendance(RowEventSkud rowEventSkud)
+    {
+        return await ImportAttendance(dateTime: rowEventSkud.DateTime, objectInit: rowEventSkud.ObjectInit,
+            shortName: rowEventSkud.ShortName,
+            groupName: rowEventSkud.ShortName, faceMode: rowEventSkud.FaceMode);
     }
 }

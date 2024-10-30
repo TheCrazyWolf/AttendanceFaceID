@@ -10,4 +10,14 @@
       <ProjectReference Include="..\AttendanceFaceID.Storage\AttendanceFaceID.Storage.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Reference Include="Microsoft.AspNetCore.Components.Web">
+        <HintPath>..\..\..\..\..\Program Files\dotnet\shared\Microsoft.AspNetCore.App\8.0.8\Microsoft.AspNetCore.Components.Web.dll</HintPath>
+      </Reference>
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="ClosedXML" Version="0.104.1" />
+    </ItemGroup>
+
 </Project>

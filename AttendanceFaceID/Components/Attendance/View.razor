@@ -25,10 +25,8 @@
                Variant="Variant.Outlined"
                ToStringFunc="@(e => e is null ? "Не выбрано" : $"{e.ShortName}")"
                MultiSelection="true" @bind-SelectedValues="SelectedStudents">
-        <MudStack Row="true">
-            <MudButton OnClick="SelectAllStudent" Variant="Variant.Text" Size="Size.Small">Все</MudButton>
-            <MudButton OnClick="UncheckAllStudent" Variant="Variant.Text" Size="Size.Small">Снять</MudButton>
-        </MudStack>
+        <MudButton OnClick="SelectAllStudent" Variant="Variant.Text" Size="Size.Small">Все</MudButton>
+        <MudButton OnClick="UncheckAllStudent" Variant="Variant.Text" Size="Size.Small">Снять</MudButton>
         @foreach (var student in _students)
         {
             <MudSelectItem T="Student" Value="@student">@student.ShortName</MudSelectItem>

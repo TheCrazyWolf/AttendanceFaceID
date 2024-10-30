@@ -2,25 +2,30 @@
 
 @using AttendanceFaceID.Services.Models
 @using AttendanceFaceID.Services.Services
-@using ClosedXML.Excel
 
 @inject AttendanceService AttendanceService
 
 <PageTitle>Импорт логов из СКУДа</PageTitle>
 <MudText Class="mb-4" Typo="Typo.h6">Импорт логов из СКУДа</MudText>
 
-<MudFileUpload T="IBrowserFile" FilesChanged="UploadFiles">
-    <ActivatorContent>
-        <MudButton Variant="Variant.Outlined"
-                   Color="Color.Primary"
-                   DropShadow="false"
-                   StartIcon="@Icons.Material.Filled.CloudUpload">
-            Загрузить файл
-        </MudButton>
-    </ActivatorContent>
-</MudFileUpload>
+@if (!_isBusy)
+{
+    <MudFileUpload T="IBrowserFile" FilesChanged="UploadFiles">
+        <ActivatorContent>
+            <MudButton Variant="Variant.Outlined"
+                       Color="Color.Primary"
+                       DropShadow="false"
+                       StartIcon="@Icons.Material.Filled.CloudUpload">
+                Загрузить файл
+            </MudButton>
+        </ActivatorContent>
+    </MudFileUpload>
+}
 
-<MudProgressLinear Striped="true" Color="Color.Primary" Value="@_valueProgress" Class="my-7" />
+@if (_isBusy)
+{
+    <MudProgressLinear Striped="true" Color="Color.Primary" Value="_valueProgress" Min="0" Max="@_maxCounts" Class="my-7"/>
+}
 
 @foreach (var item in _actionResults.Reverse())
 {
@@ -30,49 +35,30 @@
 
 @code {
 
-    private IList<ActionResult> _actionResults = new List<ActionResult>();
-    
-    private double _valueProgress;
+    private readonly IList<ActionResult> _actionResults = new List<ActionResult>();
 
+    private double _valueProgress;
+    private int _maxCounts;
+    private bool _isBusy;
+    
     private async Task UploadFiles(IBrowserFile? file)
     {
-        if (file != null)
+        if (file is null) return;
+        _isBusy = true;
+        _valueProgress = 0;
+        var rows = await AttendanceService.ReadXlsxFileAndGetRows(file);
+        _actionResults.Add(new ActionResult(true, $"[{DateTime.Now}] Старт импорта"));
+        _maxCounts = rows.Count();
+        foreach (var row in rows)
         {
-            // Create a MemoryStream to hold the file data
-            using var memoryStream = new MemoryStream();
-
-            // Copy the file content to memory stream asynchronously
-            await file.OpenReadStream().CopyToAsync(memoryStream);
-
-            // Reset position of the memory stream to the beginning
-            memoryStream.Position = 0;
-
-            // Now use the memory stream with XLWorkbook
-            using var workbook = new XLWorkbook(memoryStream);
-            var worksheet = workbook.Worksheet(1);
-            _actionResults.Add(new ActionResult(true, $"[{DateTime.Now}] Старт импорта"));
-            
-            var fullCounts = worksheet.RowsUsed().Skip(1).Count();
-            double perStep = 100.0 / fullCounts;
-            
-            foreach (var row in worksheet.RowsUsed().Skip(1))
-            {
-                var cells = row.CellsUsed().ToList();
-
-                string dateTime = cells[7].Value.ToString();
-                string objectInit = cells[4].Value.ToString();
-                string shortName = cells[8].Value.ToString();
-                string groupName = cells[6].Value.ToString();
-                string faceMode = cells[9].Value.ToString();
-                var result = await AttendanceService.ImportAttendance(dateTime: dateTime, objectInit: objectInit, shortName: shortName, 
-                    groupName: groupName, faceMode: faceMode);
-                if(!result.IsSuccess) _actionResults.Add(result);
-                _valueProgress += perStep;
-                await InvokeAsync(StateHasChanged);
-            }
-
-            _actionResults.Add(new ActionResult(true, $"[{DateTime.Now}] Импорт завершен"));
+            _valueProgress++;
+            var rowEventSkud = AttendanceService.TryGetRowEventSkud(row.CellsUsed().ToList());
+            if (rowEventSkud is null) continue;
+            var result = await AttendanceService.ImportAttendance(rowEventSkud);
+            //if (!result.IsSuccess) _actionResults.Add(result);
+            StateHasChanged();
         }
+        _actionResults.Add(new ActionResult(true, $"[{DateTime.Now}] Импорт завершен"));
+        _isBusy = false;
     }
-
 }
