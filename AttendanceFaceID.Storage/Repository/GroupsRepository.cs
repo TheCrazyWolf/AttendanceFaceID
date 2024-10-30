@@ -37,6 +37,6 @@ public class GroupsRepository(AttendanceContext ef)
 
     public async Task<IList<Group>> GetGroup()
     {
-        return await ef.Groups.ToListAsync();
+        return await ef.Groups.OrderBy(x=> x.Name).ToListAsync();
     }
 }
