@@ -115,6 +115,6 @@ public class AttendanceService(AttendanceMainRepo repository)
     {
         return await ImportAttendance(dateTime: rowEventSkud.DateTime, objectInit: rowEventSkud.ObjectInit,
             shortName: rowEventSkud.ShortName,
-            groupName: rowEventSkud.ShortName, faceMode: rowEventSkud.FaceMode);
+            groupName: rowEventSkud.GroupName, faceMode: rowEventSkud.FaceMode);
     }
 }
