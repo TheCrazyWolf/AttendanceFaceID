@@ -48,9 +48,9 @@
     <MudCheckBox @bind-Value="_userScheduleForCheckDistance" Label="Интеграция Д/О с расписанием" Color="Color.Primary"></MudCheckBox>
 </MudStack>
 
-@if (_showProgressBar)
+@if (_isBusy)
 {
-    <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="my-7" />
+    <MudProgressLinear Striped="true" Color="Color.Primary" Indeterminate="true" Class="my-7" />
 }
 
 @if (SelectedStudents.Count() != 0)
@@ -99,7 +99,7 @@
     
     private List<DateColumn> _dateColumns = new();
     
-    private bool _showProgressBar = false;
+    private bool _isBusy = false;
     private bool _skipWeekend = true;
     private bool _userScheduleForCheckDistance = false;
     
@@ -112,11 +112,11 @@
 
     private async Task SearchAttendance()
     {
-        if (_showProgressBar) return;
+        if (_isBusy) return;
         if (_selectedGroup is null) return;
-        _showProgressBar = true;
+        _isBusy = true;
         await GenerateDateColumnsAsync();
-        _showProgressBar = false;
+        _isBusy = false;
     }
 
     private void ClearList()
