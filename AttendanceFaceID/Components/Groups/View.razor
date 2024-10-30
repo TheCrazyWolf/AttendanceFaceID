@@ -1,11 +1,12 @@
 ﻿@page "/groups/view"
 
-
-@using AttendanceFaceID.Components.Attendance.Dialog
+@using System.Globalization
+@using AttendanceFaceID.Components.Groups.Dialogs
 @using AttendanceFaceID.Models.DLA
 @using AttendanceFaceID.Services.Services
 
 @inject GroupService GroupService
+@inject AttendanceService AttendanceService
 @inject StudentsService StudentsService
 @inject IDialogService DialogService
 
@@ -24,14 +25,14 @@
 <MudDataGrid Class="mt-4" Items="@_students" HorizontalScrollbar="true" Bordered="true" Dense="true">
     <Columns>
         <PropertyColumn Property="x => x.ShortName" StickyLeft="true" Title="Фамилия И.О." Sortable="false" Filterable="false"/>
-        <TemplateColumn StickyRight="true" Title="Дата-время последнего события">
+        <TemplateColumn Title="Дата-время последнего события">
             <CellTemplate>
-                --
+                @(GetLastAttandance(context.Item))
             </CellTemplate>
         </TemplateColumn>
-        <TemplateColumn Title="Действия" StickyRight="true">
+        <TemplateColumn T="Student" Title="Действия" StickyRight="true">
             <CellTemplate>
-                <MudIconButton Icon="@Icons.Material.Outlined.Delete" Size="@Size.Small" />
+                <MudIconButton Icon="@Icons.Material.Outlined.Delete" OnClick="() => OpenModalToRemoveStudent(context.Item)" Size="@Size.Small" />
                 <MudIconButton Icon="@Icons.Material.Outlined.Search" Size="@Size.Small" />
             </CellTemplate>
         </TemplateColumn>
@@ -50,19 +51,24 @@
         return groups.Where(x => x.Name.Contains(value, StringComparison.InvariantCultureIgnoreCase));
     }
 
-    private async Task OpenDetailsHistoryFromDate(Student contextItem, DateTime date)
+    private async Task OpenModalToRemoveStudent(Student contextItem)
     {
-        var options = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true};
-        var parameters = new DialogParameters<AttendancesFromDate>();
-        parameters.Add("StudentId", contextItem.Id);
-        parameters.Add("Date", date);
-        var dialog = await DialogService.ShowAsync<AttendancesFromDate>($"Просмотр {contextItem.ShortName} за {date.ToString("dd.MM.yyyy")}", parameters, options);
+        var options = new DialogOptions {};
+        var parameters = new DialogParameters<RemoveStudentFromGroup>();
+        parameters.Add("Student", contextItem);
+        var dialog = await DialogService.ShowAsync<RemoveStudentFromGroup>($"Исключить {contextItem.ShortName} из группы", parameters, options);
         await dialog.Result;
     }
 
     private async Task OnChangedGroup(Group arg)
     {
         _students = await StudentsService.GetStudentByGroup(arg.Id);
+    }
+
+    private string GetLastAttandance(Student student)
+    {
+        var lastAttendance = AttendanceService.GetLastAttendanceFromStudent(student.Id).GetAwaiter().GetResult();
+        return lastAttendance is null ? "Нет данных" : lastAttendance.DateTimeJoined.ToString(CultureInfo.CurrentCulture);
     }
 
 }

@@ -38,4 +38,9 @@ public class StudentsService(AttendanceMainRepo repository)
     {
         return await repository.Students.GetStudentById(studentId);
     }
+
+    public async Task RemoveStudent(Student student)
+    {
+        await repository.Students.RemoveStudent(student);
+    }
 }

@@ -1,0 +1,32 @@
+﻿@using AttendanceFaceID.Models.DLA
+@using AttendanceFaceID.Services.Services
+
+@inject StudentsService StudentService
+
+<MudDialog >
+    <DialogContent >
+        Будет исключен из локального хранилища. Но, если в импортируемых данных из журнала СКУД
+        будет присутствовать, карточка студента будет автоматически создана.
+    </DialogContent>
+    <DialogActions>
+        <MudButton Color="Color.Primary" OnClick="Remove">Удалить</MudButton>
+        <MudButton Color="Color.Primary" OnClick="Close">Закрыть</MudButton>
+    </DialogActions>
+</MudDialog>
+
+
+@code {
+
+    [CascadingParameter] private MudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter] public Student Student { get; set; } = new Student();
+    
+    private void Close() => MudDialog.Close(DialogResult.Ok(true));
+
+    private async Task Remove()
+    {
+        await StudentService.RemoveStudent(Student);
+        Close();
+    }
+
+}

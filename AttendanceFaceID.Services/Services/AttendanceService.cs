@@ -71,4 +71,9 @@ public class AttendanceService(AttendanceMainRepo repository)
     {
         return await repository.AttendancesMain.GetHistoryFromDateByStudentId(studentId, dateTime);
     }
+
+    public async Task<Attendance?> GetLastAttendanceFromStudent(long studentId)
+    {
+        return await repository.AttendancesMain.GetLastAttendanceFromStudent(studentId);
+    }
 }

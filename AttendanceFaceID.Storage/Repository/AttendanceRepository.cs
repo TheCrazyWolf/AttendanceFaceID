@@ -46,4 +46,10 @@ public class AttendanceRepository(AttendanceContext ef)
         return await ef.Attendances.Where(x => x.StudentId == studentId 
                                                   && x.DateTimeJoined.Date == dateTime.Date).ToListAsync();
     }
+
+    public async Task<Attendance?> GetLastAttendanceFromStudent(long studentId)
+    {
+        return await ef.Attendances.OrderBy(x=> x.Id)
+            .LastOrDefaultAsync(x => x.StudentId == studentId);
+    }
 }
