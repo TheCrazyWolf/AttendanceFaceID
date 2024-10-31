@@ -59,19 +59,62 @@
     <MudTable Class="mt-4" Items="_dateColumns" FixedFooter="true" HorizontalScrollbar="true" Bordered="true" Dense="true">
         <HeaderContent>
             <MudTh Class="sticky" Style="width: 350px; white-space: nowrap;">Фамилия И.О.</MudTh>
+            @if (_userScheduleForCheckDistance)
+            {
+                <MudTh Style="width: 350px; white-space: nowrap;">Прогул (ак.час)</MudTh>
+                <MudTh Style="width: 350px; white-space: nowrap;">По расп.</MudTh>
+            }
+            else
+            {
+                <MudTh Style="width: 350px; white-space: nowrap;">Прогул (дней)</MudTh>
+            }
             @foreach (var resultOfDay in _dateColumns[0].Attendances)
             {
-                <MudTd Class="text-center" Style="max-width: 90px; white-space: nowrap;" >@resultOfDay.Date.ToString("dd.MM")</MudTd>
+                <MudTd Class="text-center" Style="max-width: 90px; white-space: nowrap;">@resultOfDay.Date.ToString("dd.MM")</MudTd>
             }
         </HeaderContent>
         <RowTemplate>
             <MudTd Class="sticky" Style="width: 350px; white-space: nowrap;">@context.ShortName</MudTd>
+            @if (_userScheduleForCheckDistance)
+            {
+                <MudTd Class="text-center" Style="max-width: 90px; white-space: nowrap;">
+                    @{
+                        var totalHours = 0;
+                        @foreach (var resultOfDay in context.Attendances.Where(x => x.AttendanceType == AttendanceEnumType.Absent))
+                        {
+                            totalHours += resultOfDay.TotalHoursLessons;
+                        }
+
+                        @totalHours
+                    }
+                </MudTd>
+                <MudTd Class="text-center" Style="max-width: 90px; white-space: nowrap;">
+                    @{
+                        var totalHours = 0;
+                        @foreach (var resultOfDay in context.Attendances)
+                        {
+                            totalHours += resultOfDay.TotalHoursLessons;
+                        }
+
+                        @totalHours
+                    }
+                </MudTd>
+            }
+            else
+            {
+                <MudTd Class="text-center" Style="max-width: 90px; white-space: nowrap;">
+                    @{
+                        @context.Attendances.Count(x => x.AttendanceType is AttendanceEnumType.Absent)
+                        ;
+                    }
+                </MudTd>
+            }
             @foreach (var resultOfDay in @context.Attendances)
             {
                 <MudTd Class="text-center" Style="max-width: 90px; white-space: nowrap;" @onclick="() => OpenDetailsHistoryFromDate(context, resultOfDay.Date.ToDateTime(new TimeOnly()))">
-                    
-                        @(resultOfDay.AttendanceType is AttendanceEnumType.Came ? string.Empty : resultOfDay.AttendanceType.GetDisplayName())
-                   
+
+                    @(resultOfDay.AttendanceType is AttendanceEnumType.Came ? string.Empty : resultOfDay.AttendanceType.GetDisplayName())
+
                 </MudTd>
             }
         </RowTemplate>
