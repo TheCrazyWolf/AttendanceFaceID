@@ -56,19 +56,19 @@
 
 @if (_dateColumns.Count != 0)
 {
-    <MudTable Class="mt-4" Items="_dateColumns" HorizontalScrollbar="true" Bordered="true" Dense="true">
+    <MudTable Class="mt-4" Items="_dateColumns" FixedFooter="true" HorizontalScrollbar="true" Bordered="true" Dense="true">
         <HeaderContent>
-            <MudTd Class="sticky" Style="min-width: 200px; max-width: 200px;">Фамилия И.О.</MudTd>
+            <MudTh Class="sticky" Style="width: 350px; white-space: nowrap;">Фамилия И.О.</MudTh>
             @foreach (var resultOfDay in _dateColumns[0].Attendances)
             {
-                <MudTd Class="text-center" Style="max-width: 60px;" >@resultOfDay.Date.ToString("dd.MM")</MudTd>
+                <MudTd Class="text-center" Style="max-width: 90px; white-space: nowrap;" >@resultOfDay.Date.ToString("dd.MM")</MudTd>
             }
         </HeaderContent>
         <RowTemplate>
-            <MudTd Class="sticky no-wrap" Style="min-width: 200px; max-width: 200px;">@context.ShortName</MudTd>
+            <MudTd Class="sticky" Style="width: 350px; white-space: nowrap;">@context.ShortName</MudTd>
             @foreach (var resultOfDay in @context.Attendances)
             {
-                <MudTd Class="text-center" Style="max-width: 60px;" @onclick="() => OpenDetailsHistoryFromDate(context, resultOfDay.Date.ToDateTime(new TimeOnly()))">
+                <MudTd Class="text-center" Style="max-width: 90px; white-space: nowrap;" @onclick="() => OpenDetailsHistoryFromDate(context, resultOfDay.Date.ToDateTime(new TimeOnly()))">
                     
                         @(resultOfDay.AttendanceType is AttendanceEnumType.Came ? string.Empty : resultOfDay.AttendanceType.GetDisplayName())
                    
