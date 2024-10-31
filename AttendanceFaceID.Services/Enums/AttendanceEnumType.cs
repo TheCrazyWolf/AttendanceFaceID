@@ -15,5 +15,9 @@ public enum AttendanceEnumType
     Came,
     // не явка
     [Display(Name = "Н")]
-    Absent
+    Absent,
+    // Пар нет
+    [Display(Name = "В")]
+    NoSchedule,
+    
 }

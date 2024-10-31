@@ -164,6 +164,8 @@ public class AttendanceService(AttendanceMainRepo repository, ClientSamgkApi cli
 
                     scheduleFromDates.Add(currentDateLesson);
                     
+                    if (currentDateLesson.Lessons.Count is 0) typeOfDay = AttendanceEnumType.NoSchedule;
+                    
                     var firstLesson = currentDateLesson.Lessons.FirstOrDefault();
                     var firstCab = currentDateLesson.Lessons.FirstOrDefault()?.Cabs.FirstOrDefault();
 
@@ -188,7 +190,9 @@ public class AttendanceService(AttendanceMainRepo repository, ClientSamgkApi cli
 
                 if (typeOfDay is not null)
                     attendanceResultDayDetails.AttendanceType = typeOfDay.Value;
-                else
+                else if (typeOfDay is AttendanceEnumType.NoSchedule)
+                    attendanceResultDayDetails.AttendanceType = typeOfDay.Value;
+                else 
                     attendanceResultDayDetails.AttendanceType = await ExistsAttendanceOfDate(student, currentDate)
                         ? AttendanceEnumType.Came
                         : AttendanceEnumType.Absent;
