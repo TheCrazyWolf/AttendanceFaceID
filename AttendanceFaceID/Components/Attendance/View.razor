@@ -46,7 +46,7 @@
 
 <MudStack Row="true">
     <MudCheckBox @bind-Value="_skipWeekend" Label="Скип выходные (Cб,Вс)" Color="Color.Primary"></MudCheckBox>
-    <MudCheckBox @bind-Value="_userScheduleForCheckDistance" Label="Интеграция Д/О с расписанием" Color="Color.Primary"></MudCheckBox>
+    <MudCheckBox @bind-Value="_userScheduleForCheckDistance" Label="Интеграция с расписанием" Color="Color.Primary"></MudCheckBox>
 </MudStack>
 
 @if (_isBusy)
@@ -56,69 +56,58 @@
 
 @if (_dateColumns.Count != 0)
 {
+    @if (_userScheduleForCheckDistance)
+    {
+        <MudAlert Severity="Severity.Normal" Variant="Variant.Outlined">Посещаемость: @CalculateTotalAttendanceOfSchedule(_dateColumns)
+            <br/>
+            Пропущено часов: @CalculateTotalUnAttendanceOfSchedule(_dateColumns)</MudAlert>
+    }
+    else
+    {
+        <MudAlert Severity="Severity.Normal" Variant="Variant.Outlined">Посещаемость: @CalculateTotalAttendanceOfDays(_dateColumns)</MudAlert>
+    }
+    
     <MudTable Class="mt-4" Items="_dateColumns" FixedFooter="true" HorizontalScrollbar="true" Bordered="true" Dense="true">
         <HeaderContent>
             <MudTh Class="sticky" Style="width: 350px; white-space: nowrap;">Фамилия И.О.</MudTh>
             @if (_userScheduleForCheckDistance)
             {
-                <MudTh Style="width: 350px; white-space: nowrap;">Прогул (ак.час)</MudTh>
-                <MudTh Style="width: 350px; white-space: nowrap;">По расп.</MudTh>
+                <MudTh Style="width: 350px; ">Прогул (ак.час)</MudTh>
+                <MudTh Style="width: 350px;" >По расп. (ак.час)</MudTh>
+                <MudTh Style="width: 150px;">Посещаемость (%)</MudTh>
             }
             else
             {
-                <MudTh Style="width: 350px; white-space: nowrap;">Прогул (дней)</MudTh>
+                <MudTh Style="width: 350px; ">Прогул (дней)</MudTh>
+                <MudTh Style="width: 150px; ">Посещаемость (%)</MudTh>
             }
             @foreach (var resultOfDay in _dateColumns[0].Attendances)
             {
-                <MudTd Class="text-center" Style="max-width: 90px; white-space: nowrap;">@resultOfDay.Date.ToString("dd.MM")</MudTd>
+                <MudTh Class="text-center" Style="max-width: 90px; white-space: nowrap;">@resultOfDay.Date.ToString("dd.MM")</MudTh>
             }
         </HeaderContent>
         <RowTemplate>
             <MudTd Class="sticky" Style="width: 350px; white-space: nowrap;">@context.ShortName</MudTd>
             @if (_userScheduleForCheckDistance)
             {
-                <MudTd Class="text-center" Style="max-width: 90px; white-space: nowrap;">
-                    @{
-                        var totalHours = 0;
-                        @foreach (var resultOfDay in context.Attendances.Where(x => x.AttendanceType == AttendanceEnumType.Absent))
-                        {
-                            totalHours += resultOfDay.TotalHoursLessons;
-                        }
-
-                        @totalHours
-                    }
-                </MudTd>
-                <MudTd Class="text-center" Style="max-width: 90px; white-space: nowrap;">
-                    @{
-                        var totalHours = 0;
-                        @foreach (var resultOfDay in context.Attendances)
-                        {
-                            totalHours += resultOfDay.TotalHoursLessons;
-                        }
-
-                        @totalHours
-                    }
-                </MudTd>
+                <MudTd Class="text-center" Style="max-width: 90px; white-space: nowrap;">@GetTotalAbsentHours(context)</MudTd>
+                <MudTd Class="text-center" Style="max-width: 90px; white-space: nowrap;">@GetTotalScheduledHours(context)</MudTd>
+                <MudTd Class="text-center" Style="max-width: 90px; white-space: nowrap;">@CalculateAttendanceOfSchedule(context)</MudTd>
             }
             else
             {
-                <MudTd Class="text-center" Style="max-width: 90px; white-space: nowrap;">
-                    @{
-                        @context.Attendances.Count(x => x.AttendanceType is AttendanceEnumType.Absent)
-                        ;
-                    }
-                </MudTd>
+                <MudTd Class="text-center" Style="max-width: 90px; white-space: nowrap;">@GetAbsentDaysCount(context)</MudTd>
+                <MudTd Class="text-center " Style="max-width: 90px; white-space: nowrap;">@CalculateAttendanceOfDays(context)</MudTd>
             }
-            @foreach (var resultOfDay in @context.Attendances)
+            @foreach (var resultOfDay in context.Attendances)
             {
                 <MudTd Class="text-center" Style="max-width: 90px; white-space: nowrap;" @onclick="() => OpenDetailsHistoryFromDate(context, resultOfDay.Date.ToDateTime(new TimeOnly()))">
-
-                    @(resultOfDay.AttendanceType is AttendanceEnumType.Came ? string.Empty : resultOfDay.AttendanceType.GetDisplayName())
-
+                    @(resultOfDay.AttendanceType == AttendanceEnumType.Came ? string.Empty : resultOfDay.AttendanceType.GetDisplayName())
                 </MudTd>
             }
         </RowTemplate>
     </MudTable>
+    
 }
 
 @code {
@@ -153,7 +142,6 @@
 
     private void ClearList()
     {
-        _students = new List<Student>();
         _dateColumns = new List<AttendanceStudentDetails>();
     }
 
@@ -169,7 +157,8 @@
 
     private async Task GenerateDateColumnsAsync()
     {
-        _dateColumns = await AttendanceService.GetAttendanceResultFromDate(SelectedStudents.ToList(), _selectedGroup ?? new(), DateRange.Start ?? DateTime.Now, DateRange.End ?? DateTime.Now, _skipWeekend, _userScheduleForCheckDistance);
+        _dateColumns = await AttendanceService.GetAttendanceResultFromDate(SelectedStudents.ToList(),
+            _selectedGroup ?? new(), DateRange.Start ?? DateTime.Now, DateRange.End ?? DateTime.Now, _skipWeekend, _userScheduleForCheckDistance);
     }
 
     private async Task OnValueChangedGroup(Group arg)
@@ -190,6 +179,81 @@
     {
         SelectedStudents = new HashSet<Student>();
         return Task.CompletedTask;
+    }
+    
+    private int GetTotalAbsentHours(AttendanceStudentDetails context)
+    {
+        return context.Attendances
+            .Where(x => x.AttendanceType == AttendanceEnumType.Absent)
+            .Sum(x => x.TotalHoursLessons);
+    }
+    
+    private int GetTotalComingHours(AttendanceStudentDetails context)
+    {
+        return context.Attendances
+            .Where(x => x.AttendanceType is AttendanceEnumType.Came || x.AttendanceType is AttendanceEnumType.Distance || x.AttendanceType is AttendanceEnumType.Practice)
+            .Sum(x => x.TotalHoursLessons);
+    }
+
+    private int GetTotalScheduledHours(AttendanceStudentDetails context)
+    {
+        return context.Attendances.Sum(x => x.TotalHoursLessons);
+    }
+
+    private int GetAbsentDaysCount(AttendanceStudentDetails context)
+    {
+        return context.Attendances.Count(x => x.AttendanceType == AttendanceEnumType.Absent);
+    }
+
+    private string CalculateAttendanceOfDays(AttendanceStudentDetails context)
+    {
+        var totalLessons = context.Attendances.Count;
+        var attendedLessons = context.Attendances.Count(x => x.AttendanceType == AttendanceEnumType.Came);
+        
+        return totalLessons > 0 
+            ? $"{(attendedLessons * 100 / totalLessons):F1}%"
+            : "N/A";
+    }
+    
+    private string CalculateTotalAttendanceOfSchedule(IList<AttendanceStudentDetails> context)
+    {
+        var totalLessons = context.SelectMany(x=> x.Attendances).Sum(x => x.TotalHoursLessons);
+        
+        var attendedLessons = context.SelectMany(x=> x.Attendances)
+            .Where(x => x.AttendanceType is AttendanceEnumType.Came || 
+                        x.AttendanceType is AttendanceEnumType.Distance || x.AttendanceType is AttendanceEnumType.Practice)
+            .Sum(x => x.TotalHoursLessons);
+        
+        return totalLessons > 0 
+            ? $"{(attendedLessons * 100 / totalLessons):F1}%"
+            : "N/A";
+    }
+    
+    private int CalculateTotalUnAttendanceOfSchedule(IList<AttendanceStudentDetails> context)
+    {
+        return context.SelectMany(x=> x.Attendances)
+            .Where(x => x.AttendanceType is AttendanceEnumType.Absent)
+            .Sum(x => x.TotalHoursLessons);
+    }
+    
+    private string CalculateAttendanceOfSchedule(AttendanceStudentDetails context)
+    {
+        var totalLessons = GetTotalScheduledHours(context);
+        var attendedLessons = GetTotalComingHours(context);
+        
+        return totalLessons > 0 
+            ? $"{(attendedLessons * 100 / totalLessons):F1}%"
+            : "N/A";
+    }
+
+    private string CalculateTotalAttendanceOfDays(IList<AttendanceStudentDetails> dateColumns)
+    {
+        var totalLessons = dateColumns.SelectMany(x=> x.Attendances).Count();
+        var attendedLessons = dateColumns.SelectMany(x=> x.Attendances).Count(x=> x.AttendanceType is AttendanceEnumType.Came);;
+        
+        return totalLessons > 0 
+            ? $"{(attendedLessons * 100 / totalLessons):F1}%"
+            : "N/A";
     }
 
 }
