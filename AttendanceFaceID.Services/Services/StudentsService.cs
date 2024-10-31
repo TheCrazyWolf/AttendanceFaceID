@@ -28,7 +28,7 @@ public class StudentsService(AttendanceMainRepo repository)
     public async Task<IList<IXLRow>> ReadXlsxFileAndGetRows(IBrowserFile file)
     {
         using var memoryStream = new MemoryStream();
-        await file.OpenReadStream().CopyToAsync(memoryStream);
+        await file.OpenReadStream(maxAllowedSize: 100 * 1024 * 1024).CopyToAsync(memoryStream);
         memoryStream.Position = 0;
         
         var workbook = new XLWorkbook(memoryStream);
