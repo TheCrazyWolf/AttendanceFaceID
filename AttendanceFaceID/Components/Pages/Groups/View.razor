@@ -1,7 +1,7 @@
 ﻿@page "/groups/view"
 
 @using System.Globalization
-@using AttendanceFaceID.Components.Groups.Dialogs
+@using AttendanceFaceID.Components.Pages.Groups.Dialogs
 @using AttendanceFaceID.Models.DLA
 @using AttendanceFaceID.Services.Services
 
@@ -33,7 +33,7 @@
         <TemplateColumn T="Student" Title="Действия" StickyRight="true">
             <CellTemplate>
                 <MudIconButton Icon="@Icons.Material.Outlined.Delete" OnClick="() => OpenModalToRemoveStudent(context.Item)" Size="@Size.Small" />
-                <MudIconButton Icon="@Icons.Material.Outlined.Search" Size="@Size.Small" />
+                @*<MudIconButton Icon="@Icons.Material.Outlined.Search" Size="@Size.Small" />*@
             </CellTemplate>
         </TemplateColumn>
     </Columns>

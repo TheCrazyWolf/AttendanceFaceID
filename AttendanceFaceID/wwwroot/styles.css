@@ -1,0 +1,43 @@
+﻿:root {
+    --stickyBackground: #f5f5f5;
+    --borderColor: #C9D1DC;
+}
+
+.text-center {
+    text-align: center;
+}
+
+.no-wrap {
+    white-space: nowrap !important;
+}
+
+th.sticky,
+td.sticky {
+    position: sticky;
+    left: 0;
+    background: var(--stickyBackground);
+}
+
+th.sticky::after,
+td.sticky::after {
+    content: "";
+    position: absolute;
+    right: -6px;
+    top: 0;
+    bottom: -1px;
+    width: 5px;
+    border-left: 1px solid var(--borderColor);
+    background: linear-gradient(90deg, rgba(0,0,0,0.08) 0%, rgba(0,0,0,0) 100%);
+}
+
+th.sticky::before,
+td.sticky::before {
+    content: "";
+    position: absolute;
+    left: -6px;
+    top: 0;
+    bottom: -1px;
+    width: 5px;
+    border-right: 1px solid var(--borderColor);
+    background: linear-gradient(90deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.08) 100%);
+}

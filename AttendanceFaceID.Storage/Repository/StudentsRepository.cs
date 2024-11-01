@@ -6,9 +6,9 @@ namespace AttendanceFaceID.Storage.Repository;
 
 public class StudentsRepository(AttendanceContext ef)
 {
-    public async Task<Student?> GetStudentByShortName(string shortName)
+    public async Task<Student?> GetStudentByShortNameAndGroupId(string shortName, long groupId)
     {
-        return await ef.Students.FirstOrDefaultAsync(s => s.ShortName == shortName);
+        return await ef.Students.FirstOrDefaultAsync(s => s.ShortName == shortName && s.GroupId == groupId);
     }
     
     public async Task<Student?> GetStudentByShortName(string shortName, long groupId)

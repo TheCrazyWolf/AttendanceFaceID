@@ -1,0 +1,304 @@
+﻿@page "/attendance/view"
+
+@using AttendanceFaceID.Components.Pages.Attendance.Dialog
+@using AttendanceFaceID.Models.DLA
+@using AttendanceFaceID.Models.Extensions
+@using AttendanceFaceID.Services.Enums
+@using AttendanceFaceID.Services.Models.Attendances
+@using AttendanceFaceID.Services.Services
+@using ClosedXML.Excel
+@using AttendanceFaceID.Components.Common
+
+@inject AttendanceService AttendanceService
+@inject GroupService GroupService
+@inject StudentsService StudentsService
+@inject IDialogService DialogService
+@inject IJSRuntime Js
+
+<PageTitle>Посещаемость</PageTitle>
+<MudText Class="mb-4" Typo="Typo.h6">Посещаемость</MudText>
+
+<AlertLastDataFromDb />
+
+<MudStack Row="true">
+    <MudAutocomplete T="Group" Label="Группа" ValueChanged="OnValueChangedGroup" SearchFunc="@SearchOnGroupTextBot"
+                     Variant="Variant.Outlined"
+                     ToStringFunc="@(e => e is null ? "Не выбрано" : $"{e.Name}")"
+                     ShowProgressIndicator="true"/>
+
+    <MudSelect T="Student" Label="Студенты"
+               Variant="Variant.Outlined"
+               Clearable="true"
+               ToStringFunc="@(e => e is null ? "Не выбрано" : $"{e.ShortName}")"
+               MultiSelection="true" @bind-SelectedValues="SelectedStudents">
+        @foreach (var student in _students)
+        {
+            <MudSelectItem T="Student" Value="@student">@student.ShortName</MudSelectItem>
+        }
+    </MudSelect>
+
+    <MudDateRangePicker
+        Variant="Variant.Outlined"
+        Label="Период (с - по)"
+        @bind-DateRange="@DateRange"
+        PlaceholderStart="С какого" PlaceholderEnd="По какое"/>
+    <MudIconButton Class="mt-2 mb-2" OnClick="SearchAttendance" Size="Size.Medium" Icon="@Icons.Material.Outlined.Search" Color="Color.Primary"/>
+</MudStack>
+
+<MudStack Row="true">
+    <MudCheckBox @bind-Value="_skipWeekend" Label="Пропускать СБ/ВС" Color="Color.Primary"></MudCheckBox>
+    <MudCheckBox @bind-Value="_useScheduleIntegration" Label="Вести подсчёт на основе расписания" Color="Color.Primary"></MudCheckBox>
+    @if (_dateColumns.Count != 0)
+    {
+        <MudButton Class="mt-2 mb-2" OnClick="ExportToExcel" Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">
+            Экспорт (не стабильно)
+        </MudButton>
+    }
+</MudStack>
+
+@if (_isBusy)
+{
+    <MudProgressLinear Striped="true" Color="Color.Primary" Indeterminate="true" Class="my-7"/>
+    <MudAlert Severity="Severity.Info">Загружаем данные. Это может занять длительное время, не перезагружайте страницу.</MudAlert>
+}
+
+@if (_dateColumns.Count != 0)
+{
+    @if (_useScheduleIntegration)
+    {
+        <MudAlert Severity="Severity.Normal" Variant="Variant.Outlined">
+            Посещаемость: @CalculateTotalAttendanceOfSchedule(_dateColumns).
+            Пропущено часов: @CalculateTotalUnAttendanceOfSchedule(_dateColumns) акад. часов. Кол-во студентов: @_dateColumns.Count.
+        </MudAlert>
+    }
+    else
+    {
+        <MudAlert Severity="Severity.Normal" Variant="Variant.Outlined">Посещаемость: @CalculateTotalAttendanceOfDays(_dateColumns). Кол-во студентов: @_dateColumns.Count</MudAlert>
+    }
+
+    <MudTable Class="mt-4" Items="_dateColumns" FixedFooter="true" HorizontalScrollbar="true" Bordered="true" Dense="true">
+        <HeaderContent>
+            <MudTh Class="sticky" Style="width: 350px; white-space: nowrap;">Фамилия И.О.</MudTh>
+            @if (_useScheduleIntegration)
+            {
+                <MudTh Style="width: 350px; ">Прогул (ак.час)</MudTh>
+                <MudTh Style="width: 350px;">По расп. (ак.час)</MudTh>
+                <MudTh Style="width: 150px;">%</MudTh>
+            }
+            else
+            {
+                <MudTh Style="width: 350px; ">Прогул (дн.)</MudTh>
+                <MudTh Style="width: 150px; ">%</MudTh>
+            }
+            @foreach (var resultOfDay in _dateColumns[0].Attendances)
+            {
+                <MudTh Class="text-center" Style="max-width: 90px; white-space: nowrap;">@resultOfDay.Date.ToString("dd.MM")</MudTh>
+            }
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd Class="sticky" Style="width: 350px; white-space: nowrap;">@context.ShortName</MudTd>
+            @if (_useScheduleIntegration)
+            {
+                <MudTd Class="text-center" Style="max-width: 90px; white-space: nowrap;">@GetTotalAbsentHours(context)</MudTd>
+                <MudTd Class="text-center" Style="max-width: 90px; white-space: nowrap;">@GetTotalScheduledHours(context)</MudTd>
+                <MudTd Class="text-center" Style="max-width: 90px; white-space: nowrap;">@CalculateAttendanceOfSchedule(context)</MudTd>
+            }
+            else
+            {
+                <MudTd Class="text-center" Style="max-width: 90px; white-space: nowrap;">@GetAbsentDaysCount(context)</MudTd>
+                <MudTd Class="text-center " Style="max-width: 90px; white-space: nowrap;">@CalculateAttendanceOfDays(context)</MudTd>
+            }
+            @foreach (var resultOfDay in context.Attendances)
+            {
+                <MudTd Class="text-center" Style="max-width: 90px; white-space: nowrap;" @onclick="() => OpenDetailsHistoryFromDate(context, resultOfDay.Date.ToDateTime(new TimeOnly()))">
+                    @(resultOfDay.AttendanceType == AttendanceEnumType.Came ? string.Empty : resultOfDay.AttendanceType.GetDisplayName())
+                </MudTd>
+            }
+        </RowTemplate>
+    </MudTable>
+}
+
+@code {
+
+    private Group? _selectedGroup;
+    private DateRange DateRange { get; set; } = new();
+    private IList<Student> _students = new List<Student>();
+    private IEnumerable<Student> SelectedStudents { get; set; } = new HashSet<Student>();
+
+    private IList<AttendanceStudentDetails> _dateColumns = new List<AttendanceStudentDetails>();
+
+    private bool _isBusy;
+    private bool _skipWeekend = true;
+    private bool _useScheduleIntegration;
+
+    private async Task<IEnumerable<Group>> SearchOnGroupTextBot(string value, CancellationToken token)
+    {
+        if (string.IsNullOrEmpty(value)) return await GroupService.GetGroups();
+        var groups = (await GroupService.GetGroups()).ToList();
+        return groups.Where(x => x.Name.Contains(value, StringComparison.InvariantCultureIgnoreCase));
+    }
+
+    private async Task SearchAttendance()
+    {
+        if (_isBusy) return;
+        if (_selectedGroup is null) return;
+        _isBusy = true;
+        ClearList();
+        await GenerateDateColumnsAsync();
+        _isBusy = false;
+    }
+
+    private void ClearList()
+    {
+        _dateColumns = new List<AttendanceStudentDetails>();
+    }
+
+    private async Task OpenDetailsHistoryFromDate(AttendanceStudentDetails studentId, DateTime date)
+    {
+        var options = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
+        var parameters = new DialogParameters<AttendancesFromDate>();
+        parameters.Add("StudentId", studentId.StudentId);
+        parameters.Add("Date", date);
+        var dialog = await DialogService.ShowAsync<AttendancesFromDate>($"Просмотр {studentId.ShortName} за {date.ToString("dd.MM.yyyy")}", parameters, options);
+        await dialog.Result;
+    }
+
+    private async Task GenerateDateColumnsAsync()
+    {
+        _dateColumns = await AttendanceService.GetAttendanceResultFromDate(SelectedStudents.ToList(),
+            _selectedGroup ?? new(), DateRange.Start ?? DateTime.Now, DateRange.End ?? DateTime.Now, _skipWeekend, _useScheduleIntegration);
+    }
+
+    private async Task OnValueChangedGroup(Group arg)
+    {
+        _selectedGroup = arg;
+        ClearList();
+        _students = await StudentsService.GetStudentByGroup(arg.Id);
+        SelectedStudents = _students;
+    }
+
+    private int GetTotalAbsentHours(AttendanceStudentDetails context)
+    {
+        return context.Attendances
+            .Where(x => x.AttendanceType == AttendanceEnumType.Absent)
+            .Sum(x => x.TotalHoursLessons);
+    }
+
+    private int GetTotalComingHours(AttendanceStudentDetails context)
+    {
+        return context.Attendances
+            .Where(x => x.AttendanceType is AttendanceEnumType.Came || x.AttendanceType is AttendanceEnumType.Distance || x.AttendanceType is AttendanceEnumType.Practice)
+            .Sum(x => x.TotalHoursLessons);
+    }
+
+    private int GetTotalScheduledHours(AttendanceStudentDetails context)
+    {
+        return context.Attendances.Sum(x => x.TotalHoursLessons);
+    }
+
+    private int GetAbsentDaysCount(AttendanceStudentDetails context)
+    {
+        return context.Attendances.Count(x => x.AttendanceType == AttendanceEnumType.Absent);
+    }
+
+    private string CalculateAttendanceOfDays(AttendanceStudentDetails context)
+    {
+        var totalLessons = context.Attendances.Count;
+        var attendedLessons = context.Attendances.Count(x => x.AttendanceType == AttendanceEnumType.Came);
+
+        return totalLessons > 0
+            ? $"{(attendedLessons * 100 / totalLessons):F1}%"
+            : "N/A";
+    }
+
+    private string CalculateTotalAttendanceOfSchedule(IList<AttendanceStudentDetails> context)
+    {
+        var totalLessons = context.SelectMany(x => x.Attendances).Sum(x => x.TotalHoursLessons);
+
+        var attendedLessons = context.SelectMany(x => x.Attendances)
+            .Where(x => x.AttendanceType is AttendanceEnumType.Came ||
+                        x.AttendanceType is AttendanceEnumType.Distance || x.AttendanceType is AttendanceEnumType.Practice)
+            .Sum(x => x.TotalHoursLessons);
+
+        return totalLessons > 0
+            ? $"{(attendedLessons * 100 / totalLessons):F1}%"
+            : "N/A";
+    }
+
+    private int CalculateTotalUnAttendanceOfSchedule(IList<AttendanceStudentDetails> context)
+    {
+        return context.SelectMany(x => x.Attendances)
+            .Where(x => x.AttendanceType is AttendanceEnumType.Absent)
+            .Sum(x => x.TotalHoursLessons);
+    }
+
+    private string CalculateAttendanceOfSchedule(AttendanceStudentDetails context)
+    {
+        var totalLessons = GetTotalScheduledHours(context);
+        var attendedLessons = GetTotalComingHours(context);
+
+        return totalLessons > 0
+            ? $"{(attendedLessons * 100 / totalLessons):F1}%"
+            : "N/A";
+    }
+
+    private string CalculateTotalAttendanceOfDays(IList<AttendanceStudentDetails> dateColumns)
+    {
+        var totalLessons = dateColumns.SelectMany(x => x.Attendances).Count();
+        var attendedLessons = dateColumns.SelectMany(x => x.Attendances).Count(x => x.AttendanceType is AttendanceEnumType.Came);
+        ;
+
+        return totalLessons > 0
+            ? $"{(attendedLessons * 100 / totalLessons):F1}%"
+            : "N/A";
+    }
+
+    private async Task ExportToExcel()
+    {
+        using var workbook = new XLWorkbook();
+        var worksheet = workbook.Worksheets.Add("Посещаемость");
+
+        // Фиксированные заголовки
+        worksheet.Cell(1, 1).Value = "Фамилия И.О.";
+        worksheet.Cell(1, 2).Value = _useScheduleIntegration ? "Прогул (ак.час)" : "Прогул (дней)";
+        worksheet.Cell(1, 3).Value = _useScheduleIntegration ? "По расп. (ак.час)" : "Посещаемость (%)";
+        worksheet.Cell(1, 4).Value = "Посещаемость (%)";
+
+        // Добавление заголовков для дат
+        int colIndex = 5;
+        foreach (var dateColumn in _dateColumns[0].Attendances)
+        {
+            worksheet.Cell(1, colIndex).Value = dateColumn.Date.ToString("dd.MM.yyyy");
+            colIndex++;
+        }
+
+        // Заполнение строк данными
+        for (int i = 0; i < _dateColumns.Count; i++)
+        {
+            worksheet.Cell(i + 2, 1).Value = _dateColumns[i].ShortName;
+            worksheet.Cell(i + 2, 2).Value = _useScheduleIntegration ? GetTotalAbsentHours(_dateColumns[i]) : GetAbsentDaysCount(_dateColumns[i]);
+            worksheet.Cell(i + 2, 3).Value = _useScheduleIntegration ? GetTotalScheduledHours(_dateColumns[i]) : CalculateAttendanceOfDays(_dateColumns[i]);
+            worksheet.Cell(i + 2, 4).Value = _useScheduleIntegration ? CalculateAttendanceOfSchedule(_dateColumns[i]) : CalculateAttendanceOfDays(_dateColumns[i]);
+
+            // Заполнение данных для каждой даты
+            colIndex = 5;
+            foreach (var attendance in _dateColumns[i].Attendances)
+            {
+                worksheet.Cell(i + 2, colIndex).Value = attendance.AttendanceType == AttendanceEnumType.Came
+                    ? string.Empty
+                    : attendance.AttendanceType.GetDisplayName();
+                colIndex++;
+            }
+        }
+
+        // Сохранение и загрузка файла
+        using var stream = new MemoryStream();
+        workbook.SaveAs(stream);
+        stream.Seek(0, SeekOrigin.Begin);
+
+        var fileName = $"{_selectedGroup?.Name}_{DateTime.Now}.xlsx";
+        await using var memoryStream = new MemoryStream(stream.ToArray());
+        await Js.InvokeVoidAsync("BlazorDownloadFile", fileName, memoryStream.ToArray());
+    }
+
+}

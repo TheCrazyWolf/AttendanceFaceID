@@ -1,0 +1,66 @@
+﻿@page "/students/import"
+
+@using AttendanceFaceID.Services.Models
+@using AttendanceFaceID.Services.Services
+
+@inject StudentsService StudentService
+
+<PageTitle>Импорт студентов</PageTitle>
+<MudText Class="mb-4"  Typo="Typo.h6">Импорт студентов</MudText>
+
+@if (!_isBusy)
+{
+<MudStack Row="true">
+    <MudFileUpload T="IBrowserFile" Accept=".xlsx" FilesChanged="UploadFiles">
+        <ActivatorContent>
+            <MudButton Variant="Variant.Outlined"
+                       Color="Color.Primary"
+                       DropShadow="false"
+                       StartIcon="@Icons.Material.Filled.CloudUpload">
+                Загрузить файл
+            </MudButton>
+        </ActivatorContent>
+    </MudFileUpload>
+    <MudCheckBox @bind-Value="_isDebug" Label="Дебаг" Color="Color.Primary"></MudCheckBox>
+</MudStack>
+}
+
+@if (_isBusy)
+{
+<MudProgressLinear Striped="true" Color="Color.Primary" Indeterminate="true" Class="my-7"/>
+}
+
+@foreach (var item in _actionResults.Reverse())
+{
+var type = item.IsSuccess ? Severity.Success : Severity.Warning;
+<MudAlert Class="mt-2" Variant="Variant.Outlined" Severity="type">@item.SystemMessage</MudAlert>
+}
+
+@code {
+    
+    private IList<ActionResult> _actionResults = new List<ActionResult>();
+    
+    private bool _isBusy;
+    private bool _isDebug;
+    
+    private async Task UploadFiles(IBrowserFile? file)
+    {
+        if (file is null) return;
+        _isBusy = true;
+        var rows = await StudentService.ReadXlsxFileAndGetRows(file);
+        _actionResults.Add(new ActionResult(true, $"[{DateTime.Now}] Старт импорта"));
+        StateHasChanged();
+        foreach (var row in rows)
+        {
+            var rowEventSkud = StudentService.TryGetRowFromCell(row.CellsUsed().ToList());
+            if (rowEventSkud is null) continue;
+            var result = await StudentService.ImportStudent(rowEventSkud);
+            if (!_isDebug || result.IsSuccess) continue;
+            _actionResults.Add(result);
+            StateHasChanged();
+        }
+        _actionResults.Add(new ActionResult(true, $"[{DateTime.Now}] Импорт завершен"));
+        _isBusy = false;
+    }
+
+}
