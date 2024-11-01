@@ -7,6 +7,7 @@
 @using AttendanceFaceID.Services.Models.Attendances
 @using AttendanceFaceID.Services.Services
 @using ClosedXML.Excel
+@using AttendanceFaceID.Components.Common
 
 @inject AttendanceService AttendanceService
 @inject GroupService GroupService
@@ -14,8 +15,10 @@
 @inject IDialogService DialogService
 @inject IJSRuntime Js
 
-<PageTitle>Просмотр логов</PageTitle>
-<MudText Class="mb-4" Typo="Typo.h6">Просмотр логов</MudText>
+<PageTitle>Посещаемость</PageTitle>
+<MudText Class="mb-4" Typo="Typo.h6">Посещаемость</MudText>
+
+<AlertLastDataFromDb />
 
 <MudStack Row="true">
     <MudAutocomplete T="Group" Label="Группа" ValueChanged="OnValueChangedGroup" SearchFunc="@SearchOnGroupTextBot"
@@ -25,10 +28,9 @@
 
     <MudSelect T="Student" Label="Студенты"
                Variant="Variant.Outlined"
+               Clearable="true"
                ToStringFunc="@(e => e is null ? "Не выбрано" : $"{e.ShortName}")"
                MultiSelection="true" @bind-SelectedValues="SelectedStudents">
-        <MudButton OnClick="SelectAllStudent" Variant="Variant.Text" Size="Size.Small">Все</MudButton>
-        <MudButton OnClick="UncheckAllStudent" Variant="Variant.Text" Size="Size.Small">Снять</MudButton>
         @foreach (var student in _students)
         {
             <MudSelectItem T="Student" Value="@student">@student.ShortName</MudSelectItem>
@@ -37,18 +39,18 @@
 
     <MudDateRangePicker
         Variant="Variant.Outlined"
-        Label="Диапозон дат"
+        Label="Период (с - по)"
         @bind-DateRange="@DateRange"
         PlaceholderStart="С какого" PlaceholderEnd="По какое"/>
-    <MudIconButton OnClick="SearchAttendance" Size="Size.Medium" Icon="@Icons.Material.Outlined.Search" Color="Color.Primary"/>
+    <MudIconButton Class="mt-2 mb-2" OnClick="SearchAttendance" Size="Size.Medium" Icon="@Icons.Material.Outlined.Search" Color="Color.Primary"/>
 </MudStack>
 
 <MudStack Row="true">
-    <MudCheckBox @bind-Value="_skipWeekend" Label="Скип выходные (Cб,Вс)" Color="Color.Primary"></MudCheckBox>
-    <MudCheckBox @bind-Value="_userScheduleForCheckDistance" Label="Интеграция с расписанием" Color="Color.Primary"></MudCheckBox>
+    <MudCheckBox @bind-Value="_skipWeekend" Label="Пропускать СБ/ВС" Color="Color.Primary"></MudCheckBox>
+    <MudCheckBox @bind-Value="_useScheduleIntegration" Label="Вести подсчёт на основе расписания" Color="Color.Primary"></MudCheckBox>
     @if (_dateColumns.Count != 0)
     {
-        <MudButton OnClick="ExportToExcel" Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">
+        <MudButton Class="mt-2 mb-2" OnClick="ExportToExcel" Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">
             Экспорт (не стабильно)
         </MudButton>
     }
@@ -57,36 +59,36 @@
 @if (_isBusy)
 {
     <MudProgressLinear Striped="true" Color="Color.Primary" Indeterminate="true" Class="my-7"/>
+    <MudAlert Severity="Severity.Info">Загружаем данные. Это может занять длительное время, не перезагружайте страницу.</MudAlert>
 }
 
 @if (_dateColumns.Count != 0)
 {
-    @if (_userScheduleForCheckDistance)
+    @if (_useScheduleIntegration)
     {
         <MudAlert Severity="Severity.Normal" Variant="Variant.Outlined">
-            Посещаемость: @CalculateTotalAttendanceOfSchedule(_dateColumns)
-            <br/>
-            Пропущено часов: @CalculateTotalUnAttendanceOfSchedule(_dateColumns)
+            Посещаемость: @CalculateTotalAttendanceOfSchedule(_dateColumns).
+            Пропущено часов: @CalculateTotalUnAttendanceOfSchedule(_dateColumns) акад. часов. Кол-во студентов: @_dateColumns.Count.
         </MudAlert>
     }
     else
     {
-        <MudAlert Severity="Severity.Normal" Variant="Variant.Outlined">Посещаемость: @CalculateTotalAttendanceOfDays(_dateColumns)</MudAlert>
+        <MudAlert Severity="Severity.Normal" Variant="Variant.Outlined">Посещаемость: @CalculateTotalAttendanceOfDays(_dateColumns). Кол-во студентов: @_dateColumns.Count</MudAlert>
     }
 
     <MudTable Class="mt-4" Items="_dateColumns" FixedFooter="true" HorizontalScrollbar="true" Bordered="true" Dense="true">
         <HeaderContent>
             <MudTh Class="sticky" Style="width: 350px; white-space: nowrap;">Фамилия И.О.</MudTh>
-            @if (_userScheduleForCheckDistance)
+            @if (_useScheduleIntegration)
             {
                 <MudTh Style="width: 350px; ">Прогул (ак.час)</MudTh>
                 <MudTh Style="width: 350px;">По расп. (ак.час)</MudTh>
-                <MudTh Style="width: 150px;">Посещаемость (%)</MudTh>
+                <MudTh Style="width: 150px;">%</MudTh>
             }
             else
             {
-                <MudTh Style="width: 350px; ">Прогул (дней)</MudTh>
-                <MudTh Style="width: 150px; ">Посещаемость (%)</MudTh>
+                <MudTh Style="width: 350px; ">Прогул (дн.)</MudTh>
+                <MudTh Style="width: 150px; ">%</MudTh>
             }
             @foreach (var resultOfDay in _dateColumns[0].Attendances)
             {
@@ -95,7 +97,7 @@
         </HeaderContent>
         <RowTemplate>
             <MudTd Class="sticky" Style="width: 350px; white-space: nowrap;">@context.ShortName</MudTd>
-            @if (_userScheduleForCheckDistance)
+            @if (_useScheduleIntegration)
             {
                 <MudTd Class="text-center" Style="max-width: 90px; white-space: nowrap;">@GetTotalAbsentHours(context)</MudTd>
                 <MudTd Class="text-center" Style="max-width: 90px; white-space: nowrap;">@GetTotalScheduledHours(context)</MudTd>
@@ -125,9 +127,9 @@
 
     private IList<AttendanceStudentDetails> _dateColumns = new List<AttendanceStudentDetails>();
 
-    private bool _isBusy = false;
+    private bool _isBusy;
     private bool _skipWeekend = true;
-    private bool _userScheduleForCheckDistance = false;
+    private bool _useScheduleIntegration;
 
     private async Task<IEnumerable<Group>> SearchOnGroupTextBot(string value, CancellationToken token)
     {
@@ -164,7 +166,7 @@
     private async Task GenerateDateColumnsAsync()
     {
         _dateColumns = await AttendanceService.GetAttendanceResultFromDate(SelectedStudents.ToList(),
-            _selectedGroup ?? new(), DateRange.Start ?? DateTime.Now, DateRange.End ?? DateTime.Now, _skipWeekend, _userScheduleForCheckDistance);
+            _selectedGroup ?? new(), DateRange.Start ?? DateTime.Now, DateRange.End ?? DateTime.Now, _skipWeekend, _useScheduleIntegration);
     }
 
     private async Task OnValueChangedGroup(Group arg)
@@ -173,18 +175,6 @@
         ClearList();
         _students = await StudentsService.GetStudentByGroup(arg.Id);
         SelectedStudents = _students;
-    }
-
-    private Task SelectAllStudent()
-    {
-        SelectedStudents = _students;
-        return Task.CompletedTask;
-    }
-
-    private Task UncheckAllStudent()
-    {
-        SelectedStudents = new HashSet<Student>();
-        return Task.CompletedTask;
     }
 
     private int GetTotalAbsentHours(AttendanceStudentDetails context)
@@ -270,8 +260,8 @@
 
         // Фиксированные заголовки
         worksheet.Cell(1, 1).Value = "Фамилия И.О.";
-        worksheet.Cell(1, 2).Value = _userScheduleForCheckDistance ? "Прогул (ак.час)" : "Прогул (дней)";
-        worksheet.Cell(1, 3).Value = _userScheduleForCheckDistance ? "По расп. (ак.час)" : "Посещаемость (%)";
+        worksheet.Cell(1, 2).Value = _useScheduleIntegration ? "Прогул (ак.час)" : "Прогул (дней)";
+        worksheet.Cell(1, 3).Value = _useScheduleIntegration ? "По расп. (ак.час)" : "Посещаемость (%)";
         worksheet.Cell(1, 4).Value = "Посещаемость (%)";
 
         // Добавление заголовков для дат
@@ -286,9 +276,9 @@
         for (int i = 0; i < _dateColumns.Count; i++)
         {
             worksheet.Cell(i + 2, 1).Value = _dateColumns[i].ShortName;
-            worksheet.Cell(i + 2, 2).Value = _userScheduleForCheckDistance ? GetTotalAbsentHours(_dateColumns[i]) : GetAbsentDaysCount(_dateColumns[i]);
-            worksheet.Cell(i + 2, 3).Value = _userScheduleForCheckDistance ? GetTotalScheduledHours(_dateColumns[i]) : CalculateAttendanceOfDays(_dateColumns[i]);
-            worksheet.Cell(i + 2, 4).Value = _userScheduleForCheckDistance ? CalculateAttendanceOfSchedule(_dateColumns[i]) : CalculateAttendanceOfDays(_dateColumns[i]);
+            worksheet.Cell(i + 2, 2).Value = _useScheduleIntegration ? GetTotalAbsentHours(_dateColumns[i]) : GetAbsentDaysCount(_dateColumns[i]);
+            worksheet.Cell(i + 2, 3).Value = _useScheduleIntegration ? GetTotalScheduledHours(_dateColumns[i]) : CalculateAttendanceOfDays(_dateColumns[i]);
+            worksheet.Cell(i + 2, 4).Value = _useScheduleIntegration ? CalculateAttendanceOfSchedule(_dateColumns[i]) : CalculateAttendanceOfDays(_dateColumns[i]);
 
             // Заполнение данных для каждой даты
             colIndex = 5;
