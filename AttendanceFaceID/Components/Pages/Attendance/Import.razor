@@ -2,16 +2,19 @@
 
 @using AttendanceFaceID.Services.Models
 @using AttendanceFaceID.Services.Services
+@using AttendanceFaceID.Components.Common
 
 @inject AttendanceService AttendanceService
 
 <PageTitle>Импорт логов из СКУДа</PageTitle>
 <MudText Class="mb-4" Typo="Typo.h6">Импорт логов из СКУДа</MudText>
 
+<AlertLastDataFromDb />
+
 @if (!_isBusy)
 {
     <MudStack Row="true">
-        <MudFileUpload T="IBrowserFile" FilesChanged="UploadFiles">
+        <MudFileUpload T="IBrowserFile" Accept=".xlsx" FilesChanged="UploadFiles">
             <ActivatorContent>
                 <MudButton Variant="Variant.Outlined"
                            Color="Color.Primary"
@@ -21,13 +24,13 @@
                 </MudButton>
             </ActivatorContent>
         </MudFileUpload>
-        <MudCheckBox @bind-Value="_isDebug" Label="Дебаг" Color="Color.Primary"></MudCheckBox>
+        <MudCheckBox @bind-Value="_isDebug" Label="Дебаг" Color="Color.Primary"/>
     </MudStack>
 }
 
 @if (_isBusy)
 {
-    <MudProgressLinear Striped="true" Color="Color.Primary" Value="_valueProgress" Min="0" Max="@_maxCounts" Class="my-7"/>
+    <MudProgressLinear Striped="true" Indeterminate="true" Color="Color.Primary" Class="my-7"/>
 }
 
 @foreach (var item in _actionResults.Reverse())
@@ -39,27 +42,25 @@
 @code {
 
     private readonly IList<ActionResult> _actionResults = new List<ActionResult>();
-
-    private double _valueProgress;
-    private int _maxCounts;
-    private bool _isBusy;
-    private bool _isDebug = false;
     
+    private bool _isBusy;
+    private bool _isDebug;
+
     private async Task UploadFiles(IBrowserFile? file)
     {
         if (file is null) return;
         _isBusy = true;
-        _valueProgress = 0;
+        _actionResults.Add(new ActionResult(true, $"[{DateTime.Now}] Читаем файл"));
         var rows = await AttendanceService.ReadXlsxFileAndGetRows(file);
-        _actionResults.Add(new ActionResult(true, $"[{DateTime.Now}] Старт импорта"));
-        _maxCounts = rows.Count();
+        _actionResults.Add(new ActionResult(true, $"[{DateTime.Now}] Импорт начался. Пожалуйста не перезагружайте страницу. Это может занять длительное время"));
+        StateHasChanged();
         foreach (var row in rows)
         {
-            _valueProgress++;
             var rowEventSkud = AttendanceService.TryGetRowEventSkud(row.CellsUsed().ToList());
             if (rowEventSkud is null) continue;
             var result = await AttendanceService.ImportAttendance(rowEventSkud);
-            if(_isDebug && !result.IsSuccess) _actionResults.Add(result);
+            if (!_isDebug || result.IsSuccess) continue;
+            _actionResults.Add(result);
             StateHasChanged();
         }
         _actionResults.Add(new ActionResult(true, $"[{DateTime.Now}] Импорт завершен"));

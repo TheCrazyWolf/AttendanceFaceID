@@ -207,4 +207,9 @@ public class AttendanceService(AttendanceMainRepo repository, ClientSamgkApi cli
 
         return result;
     }
+
+    public async Task<Attendance?> GetLastAttendanceFromDb()
+    {
+        return await repository.Attendances.GetLastAttendanceFromDb();
+    }
 }

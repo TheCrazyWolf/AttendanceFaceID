@@ -52,4 +52,9 @@ public class AttendanceRepository(AttendanceContext ef)
         return await ef.Attendances.OrderBy(x=> x.Id)
             .LastOrDefaultAsync(x => x.StudentId == studentId);
     }
+
+    public async Task<Attendance?> GetLastAttendanceFromDb()
+    {
+        return await ef.Attendances.OrderBy(x=> x.DateTimeJoined).LastOrDefaultAsync();
+    }
 }

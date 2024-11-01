@@ -1,0 +1,26 @@
+﻿@using AttendanceFaceID.Models.DLA
+@using AttendanceFaceID.Services.Services
+
+@inject AttendanceService AttendanceService
+
+@if (_lastAttendance is not null && _isShow)
+{
+    <MudAlert Class="mb-4" Severity="Severity.Normal" ShowCloseIcon="true" CloseIconClicked="(() => CloseMe(true))" Variant="Variant.Outlined">Актуальная база на: @_lastAttendance.DateTimeJoined</MudAlert>
+}
+
+@code {
+
+    private bool _isShow = true;
+    private Attendance? _lastAttendance;
+    
+    protected override async Task OnInitializedAsync()
+    {
+        _lastAttendance = await AttendanceService.GetLastAttendanceFromDb();
+    }
+
+    private void CloseMe(bool value)
+    {
+        _isShow = value && false;
+    }
+
+}
