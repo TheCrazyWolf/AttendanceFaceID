@@ -46,6 +46,18 @@ public class AttendanceService(AttendanceMainRepo repository, ClientSamgkApi cli
 
             await repository.Students.AddStudent(studentIdentity);
         }
+        
+        var station = await repository.Stations.GetStationByName(objectInit);
+        
+        if (station is null)
+        {
+            station = new Station()
+            {
+                Name = objectInit
+            };
+
+            await repository.Stations.AddStation(station);
+        }
 
         AttendanceEnum type = faceMode switch
         {
@@ -56,23 +68,23 @@ public class AttendanceService(AttendanceMainRepo repository, ClientSamgkApi cli
 
         Attendance attendance = new Attendance()
         {
-            StudentId = studentIdentity.Id,
-            ObjectInizialized = objectInit,
+            StudentId = station.Id,
+            StationId = station.Id,
             DateTimeJoined = dateTimeValue,
             ModeType = type
         };
 
-        if (attendance.ObjectInizialized.Contains("Общежитие", StringComparison.InvariantCultureIgnoreCase))
+        if (station.Name.Contains("Общежитие", StringComparison.InvariantCultureIgnoreCase))
             return new ActionResult(false,
-                $"Событие произошло в общежитиет: {attendance.DateTimeJoined}.{studentIdentity.ShortName} гр. {groupEntity.Name}");
+                $"Событие произошло в общежитиет: {attendance.DateTimeJoined}.{station.Name} гр. {groupEntity.Name}");
 
         if (await repository.Attendances.ExistsAttendance(attendance.StudentId ?? 0, attendance.DateTimeJoined))
             return new ActionResult(false,
-                $"Событие уже существует: {attendance.DateTimeJoined}.{studentIdentity.ShortName} гр. {groupEntity.Name}");
+                $"Событие уже существует: {attendance.DateTimeJoined}.{station.Name} гр. {groupEntity.Name}");
 
         await repository.Attendances.AddAttendance(attendance);
         return new ActionResult(true,
-            $"Событие импортировано: {attendance.DateTimeJoined}.{studentIdentity.ShortName} гр. {groupEntity.Name}");
+            $"Событие импортировано: {attendance.DateTimeJoined}.{station.Name} гр. {groupEntity.Name}");
     }
 
     public async Task<bool> ExistsAttendanceOfDate(Student student, DateTime dateTime)
