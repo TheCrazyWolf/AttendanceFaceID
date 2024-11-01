@@ -9,7 +9,7 @@
         <MudDataGrid Items="@_attendances" HorizontalScrollbar="true" Bordered="true" Dense="true">
             <Columns>
                 <PropertyColumn Property="x => x.DateTimeJoined"  Title="Дата-время" Sortable="false" Filterable="false"/>
-                <PropertyColumn Property="x => x.ObjectInizialized"  Title="Считыватель" Sortable="false" Filterable="false"/>
+                <PropertyColumn Property="x => x.Station.Name"  Title="Считыватель" Sortable="false" Filterable="false"/>
                 <TemplateColumn T="Attendance" Title="Режим" Sortable="false" Filterable="false">
                     <CellTemplate>
                         @context.Item.ModeType.GetDisplayName()

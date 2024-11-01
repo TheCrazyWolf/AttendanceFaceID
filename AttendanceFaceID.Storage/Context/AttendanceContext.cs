@@ -10,6 +10,7 @@ public sealed class AttendanceContext : DbContext
     public DbSet<Student> Students { get; set; }
     public DbSet<Attendance> Attendances { get; set; }
 
+    public DbSet<Station> Stations { get; set; }
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         optionsBuilder.UseSqlite("Data Source = app.db");
