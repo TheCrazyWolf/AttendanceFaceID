@@ -29,14 +29,15 @@ namespace AttendanceFaceID.Storage.Migrations
                     b.Property<int>("ModeType")
                         .HasColumnType("INTEGER");
 
-                    b.Property<string>("ObjectInizialized")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
+                    b.Property<long?>("StationId")
+                        .HasColumnType("INTEGER");
 
                     b.Property<long?>("StudentId")
                         .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("StationId");
 
                     b.HasIndex("StudentId");
 
@@ -56,6 +57,21 @@ namespace AttendanceFaceID.Storage.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Groups");
+                });
+
+            modelBuilder.Entity("AttendanceFaceID.Models.DLA.Station", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Stations");
                 });
 
             modelBuilder.Entity("AttendanceFaceID.Models.DLA.Student", b =>
@@ -92,10 +108,16 @@ namespace AttendanceFaceID.Storage.Migrations
 
             modelBuilder.Entity("AttendanceFaceID.Models.DLA.Attendance", b =>
                 {
+                    b.HasOne("AttendanceFaceID.Models.DLA.Station", "Station")
+                        .WithMany()
+                        .HasForeignKey("StationId");
+
                     b.HasOne("AttendanceFaceID.Models.DLA.Student", "Student")
                         .WithMany()
                         .HasForeignKey("StudentId")
                         .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Station");
 
                     b.Navigation("Student");
                 });

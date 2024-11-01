@@ -25,6 +25,19 @@ namespace AttendanceFaceID.Storage.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "Stations",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    Name = table.Column<string>(type: "TEXT", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Stations", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Students",
                 columns: table => new
                 {
@@ -55,12 +68,17 @@ namespace AttendanceFaceID.Storage.Migrations
                         .Annotation("Sqlite:Autoincrement", true),
                     StudentId = table.Column<long>(type: "INTEGER", nullable: true),
                     DateTimeJoined = table.Column<DateTime>(type: "TEXT", nullable: false),
-                    ObjectInizialized = table.Column<string>(type: "TEXT", nullable: false),
+                    StationId = table.Column<long>(type: "INTEGER", nullable: true),
                     ModeType = table.Column<int>(type: "INTEGER", nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Attendances", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Attendances_Stations_StationId",
+                        column: x => x.StationId,
+                        principalTable: "Stations",
+                        principalColumn: "Id");
                     table.ForeignKey(
                         name: "FK_Attendances_Students_StudentId",
                         column: x => x.StudentId,
@@ -68,6 +86,11 @@ namespace AttendanceFaceID.Storage.Migrations
                         principalColumn: "Id",
                         onDelete: ReferentialAction.SetNull);
                 });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Attendances_StationId",
+                table: "Attendances",
+                column: "StationId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Attendances_StudentId",
@@ -85,6 +108,9 @@ namespace AttendanceFaceID.Storage.Migrations
         {
             migrationBuilder.DropTable(
                 name: "Attendances");
+
+            migrationBuilder.DropTable(
+                name: "Stations");
 
             migrationBuilder.DropTable(
                 name: "Students");
