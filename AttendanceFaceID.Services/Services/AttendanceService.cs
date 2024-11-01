@@ -68,7 +68,7 @@ public class AttendanceService(AttendanceMainRepo repository, ClientSamgkApi cli
 
         Attendance attendance = new Attendance()
         {
-            StudentId = station.Id,
+            StudentId = studentIdentity.Id,
             StationId = station.Id,
             DateTimeJoined = dateTimeValue,
             ModeType = type
