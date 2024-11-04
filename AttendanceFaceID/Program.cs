@@ -20,10 +20,10 @@ builder.Services.AddSingleton<ClientSamgkApi>();
 
 builder.Services.AddBlazoredLocalStorage();
 
-builder.WebHost.ConfigureKestrel(options =>
+/*builder.WebHost.ConfigureKestrel(options =>
 {
     options.Listen(IPAddress.Any, 5001);
-});
+});*/
 
 // Add services to the container.
 builder.Services.AddRazorComponents()

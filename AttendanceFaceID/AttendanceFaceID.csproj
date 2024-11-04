@@ -4,6 +4,7 @@
         <TargetFramework>net8.0</TargetFramework>
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
+        <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
     </PropertyGroup>
 
 
@@ -36,5 +37,12 @@
       <AdditionalFiles Include="Components\Pages\Groups\View.razor" />
       <AdditionalFiles Include="Components\Pages\Security\LoginPage.razor" />
       <AdditionalFiles Include="Components\Pages\Students\Import.razor" />
+    </ItemGroup>
+
+
+    <ItemGroup>
+      <Content Include="..\.dockerignore">
+        <Link>.dockerignore</Link>
+      </Content>
     </ItemGroup>
 </Project>
