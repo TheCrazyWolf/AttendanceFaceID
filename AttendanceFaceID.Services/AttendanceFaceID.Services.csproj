@@ -19,6 +19,7 @@
     <ItemGroup>
       <PackageReference Include="ClientSamgk" Version="2.6.2" />
       <PackageReference Include="ClosedXML" Version="0.104.1" />
+        <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="8.0.8" />
     </ItemGroup>
 
 </Project>
