@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net;
 using MudBlazor.Services;
 using AttendanceFaceID.Components;
@@ -6,9 +7,13 @@ using AttendanceFaceID.Storage;
 using AttendanceFaceID.Storage.Context;
 using Blazored.LocalStorage;
 using ClientSamgk;
+using MudBlazor;
 
 var builder = WebApplication.CreateBuilder(args);
-
+CultureInfo.CurrentCulture = new CultureInfo("ru-RU");
+CultureInfo.DefaultThreadCurrentCulture = CultureInfo.CreateSpecificCulture("ru-RU");
+CultureInfo.DefaultThreadCurrentUICulture = CultureInfo.CreateSpecificCulture("ru-RU");
+builder.Services.AddTransient<MudLocalizer>();
 // Add MudBlazor services
 builder.Services.AddMudServices();
 builder.Services.AddScoped<AttendanceContext>();
