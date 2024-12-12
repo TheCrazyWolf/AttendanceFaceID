@@ -17,7 +17,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <PackageReference Include="ClientSamgk" Version="2.6.2" />
+      <PackageReference Include="ClientSamgk" Version="2.7.2" />
       <PackageReference Include="ClosedXML" Version="0.104.1" />
     </ItemGroup>
 
