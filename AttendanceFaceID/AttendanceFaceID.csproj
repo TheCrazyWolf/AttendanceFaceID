@@ -26,6 +26,7 @@
       <_ContentIncludedByDefault Remove="wwwroot\Attendance\noapprove.png" />
       <_ContentIncludedByDefault Remove="Components\Groups\Dialogs\RemoveStudentFromGroup.razor" />
       <_ContentIncludedByDefault Remove="Components\Groups\View.razor" />
+      <_ContentIncludedByDefault Remove="Components\Pages\Students\Import.razor" />
     </ItemGroup>
 
 
@@ -36,7 +37,6 @@
       <AdditionalFiles Include="Components\Pages\Groups\Dialogs\RemoveStudentFromGroup.razor" />
       <AdditionalFiles Include="Components\Pages\Groups\View.razor" />
       <AdditionalFiles Include="Components\Pages\Security\LoginPage.razor" />
-      <AdditionalFiles Include="Components\Pages\Students\Import.razor" />
     </ItemGroup>
 
 
