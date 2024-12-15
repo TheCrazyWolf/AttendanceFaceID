@@ -1,4 +1,3 @@
-using System.Net;
 using MudBlazor.Services;
 using AttendanceFaceID.Components;
 using AttendanceFaceID.Services.Services;
@@ -6,6 +5,7 @@ using AttendanceFaceID.Storage;
 using AttendanceFaceID.Storage.Context;
 using Blazored.LocalStorage;
 using ClientSamgk;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -44,5 +44,11 @@ app.UseAntiforgery();
 
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
+
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<AttendanceContext>();
+    dbContext.Database.Migrate();
+}
 
 app.Run();
