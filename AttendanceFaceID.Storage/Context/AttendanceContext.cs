@@ -7,6 +7,7 @@ public sealed class AttendanceContext : DbContext
 {
     public AttendanceContext() => Database.MigrateAsync();
     public DbSet<Group> Groups { get; set; }
+    public DbSet<UnificationProfile> UnificationProfiles { get; set; }
     public DbSet<Student> Students { get; set; }
     public DbSet<Attendance> Attendances { get; set; }
 
