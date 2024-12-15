@@ -29,6 +29,12 @@ builder.Services.AddRazorComponents()
 
 var app = builder.Build();
 
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<AttendanceContext>();
+    dbContext.Database.Migrate();
+}
+
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
@@ -44,11 +50,5 @@ app.UseAntiforgery();
 
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
-
-using (var scope = app.Services.CreateScope())
-{
-    var dbContext = scope.ServiceProvider.GetRequiredService<AttendanceContext>();
-    dbContext.Database.Migrate();
-}
 
 app.Run();
