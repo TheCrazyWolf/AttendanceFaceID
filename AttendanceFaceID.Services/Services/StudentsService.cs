@@ -58,9 +58,6 @@ public class StudentsService(AttendanceMainRepo repository)
     {
         Student student = new Student()
         {
-            FirstName = rowEventSkud.FirstName,
-            LastName = rowEventSkud.LastName,
-            MiddleName = rowEventSkud.MiddleName,
             ShortName = rowEventSkud.GetShortName()
         };
         

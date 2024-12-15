@@ -40,7 +40,6 @@ public class AttendanceService(AttendanceMainRepo repository, ClientSamgkApi cli
         {
             studentIdentity = new Student()
             {
-                LastName = "ImportByFaceId", FirstName = "ImportByFaceId", MiddleName = "ImportByFaceId",
                 ShortName = shortName, GroupId = groupEntity.Id
             };
 

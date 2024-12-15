@@ -18,10 +18,10 @@ builder.Services.AddScoped<AttendanceService>();
 builder.Services.AddScoped<GroupService>();
 builder.Services.AddSingleton<ClientSamgkApi>();
 builder.Services.AddBlazoredLocalStorage();
-builder.WebHost.ConfigureKestrel((httpClient, options) =>
+/*builder.WebHost.ConfigureKestrel((httpClient, options) =>
 {
     options.Listen(IPAddress.Any, httpClient.Configuration.GetValue<int?>("Port") ?? 5005);
-});
+});*/
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
