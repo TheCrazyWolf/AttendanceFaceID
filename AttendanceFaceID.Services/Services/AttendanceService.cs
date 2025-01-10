@@ -6,6 +6,7 @@ using AttendanceFaceID.Services.Models.Attendances;
 using AttendanceFaceID.Services.Models.xlsx;
 using AttendanceFaceID.Storage;
 using ClientSamgk;
+using ClientSamgk.Models;
 using ClientSamgkOutputResponse.Interfaces.Schedule;
 using ClosedXML.Excel;
 using Microsoft.AspNetCore.Components.Forms;
@@ -145,8 +146,6 @@ public class AttendanceService(AttendanceMainRepo repository, ClientSamgkApi cli
         DateTime dateTimeStart, DateTime dateTimeEnd, bool skipWeekend, bool useScheduleIntegration)
     {
         var result = new List<AttendanceStudentDetails>();
-
-        IList<IResultOutScheduleFromDate> scheduleFromDates = new List<IResultOutScheduleFromDate>();
         
         foreach (var student in students)
         {
@@ -170,16 +169,20 @@ public class AttendanceService(AttendanceMainRepo repository, ClientSamgkApi cli
                 
                 if (useScheduleIntegration && groupEntity != null)
                 {
-                    IResultOutScheduleFromDate currentDateLesson =
-                        scheduleFromDates.FirstOrDefault(x => x.Date.Day == currentDate.Day && x.Date.Month == currentDate.Month && x.Date.Year == currentDate.Year) ??
-                        await clientSamgkApi.Schedule.GetScheduleAsync(DateOnly.FromDateTime(currentDate), groupEntity);
+                    var query = new ScheduleQuery()
+                        .WithDate(DateOnly.FromDateTime(currentDate))
+                        .WithShowImportant(false)
+                        .WithShowRussianHorizon(false)
+                        .WithGroup(groupEntity);
 
-                    scheduleFromDates.Add(currentDateLesson);
+                    var scheduleResult = (await clientSamgkApi.Schedule.GetScheduleAsync(query)).FirstOrDefault();
+
+                    if (scheduleResult is null) continue;
                     
-                    if (currentDateLesson.Lessons.Count is 0) typeOfDay = AttendanceEnumType.NoSchedule;
+                    if (scheduleResult.Lessons.Count is 0) typeOfDay = AttendanceEnumType.NoSchedule;
                     
-                    var firstLesson = currentDateLesson.Lessons.FirstOrDefault();
-                    var firstCab = currentDateLesson.Lessons.FirstOrDefault()?.Cabs.FirstOrDefault();
+                    var firstLesson = scheduleResult.Lessons.FirstOrDefault();
+                    var firstCab = scheduleResult.Lessons.FirstOrDefault()?.Cabs.FirstOrDefault();
 
                     if (firstLesson is not null && firstCab is not null)
                     {
@@ -191,19 +194,15 @@ public class AttendanceService(AttendanceMainRepo repository, ClientSamgkApi cli
                         };
                     }
 
-                    foreach (var item in currentDateLesson.Lessons)
+                    foreach (var item in scheduleResult.Lessons)
                     {
-                        if (item.NumLesson is 0)
-                            attendanceResultDayDetails.TotalHoursLessons += 2;
-                        else
-                            attendanceResultDayDetails.TotalHoursLessons += 1;
+                        if (item.NumLesson is 0) attendanceResultDayDetails.TotalHoursLessons += 2;
+                        else attendanceResultDayDetails.TotalHoursLessons += 1;
                     }
                 }
 
-                if (typeOfDay is not null)
-                    attendanceResultDayDetails.AttendanceType = typeOfDay.Value;
-                else if (typeOfDay is AttendanceEnumType.NoSchedule)
-                    attendanceResultDayDetails.AttendanceType = typeOfDay.Value;
+                if (typeOfDay is not null) attendanceResultDayDetails.AttendanceType = typeOfDay.Value;
+                else if (typeOfDay is AttendanceEnumType.NoSchedule) attendanceResultDayDetails.AttendanceType = typeOfDay.Value;
                 else 
                     attendanceResultDayDetails.AttendanceType = await ExistsAttendanceOfDate(student, currentDate)
                         ? AttendanceEnumType.Came
