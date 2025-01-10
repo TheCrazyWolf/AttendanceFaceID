@@ -5,12 +5,13 @@
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
         <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+        <Version>1.2.0</Version>
     </PropertyGroup>
 
 
     <ItemGroup>
         <PackageReference Include="Blazored.LocalStorage" Version="4.5.0" />
-        <PackageReference Include="ClientSamgk" Version="2.7.2" />
+        <PackageReference Include="ClientSamgk" Version="3.0.4" />
         <PackageReference Include="ClosedXML" Version="0.104.1" />
         <PackageReference Include="MudBlazor" Version="7.*"/>
     </ItemGroup>
